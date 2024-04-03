@@ -153,19 +153,15 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
     })
   }
 
-  if (falseAssigneeScore === 0) {
-    // get total KPI
-    kpiAssignment = getTotalKpi(randomAssignment, lastKPIs)
+  // get total KPI
+  kpiAssignment = getTotalKpi(randomAssignment, lastKPIs)
 
-    // get kpi standard ratio 
-    kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).kpiOfEmployee
-    standardDeviation = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).standardDeviation
+  // get kpi standard ratio 
+  kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).kpiOfEmployee
+  standardDeviation = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).standardDeviation
 
-    // get total cost
-    totalCost = getTotalCost(randomAssignment, lastKPIs)
-  }
-
-
+  // get total cost
+  totalCost = getTotalCost(randomAssignment, lastKPIs)
 
   const randomHarmonyVector = {
     index,
@@ -176,7 +172,81 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
     kpiAssignment,
     standardDeviation
   }
-  return JSON.stringify(randomHarmonyVector)
+  return randomHarmonyVector
+}
+
+function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) {
+  // console.log("KPI target: ", kpiTarget)
+  // console.log("solution A: ", solutionA.index, " ", solutionA.kpiAssignment)
+  // console.log("solution B: ", solutionB.index, " ", solutionB.kpiAssignment)
+
+  const kpiAssignmentOfA = solutionA.kpiAssignment
+  const kpiAssignmentOfB = solutionB.kpiAssignment
+  const falseAssigneeScoreA = solutionA.falseAssigneeScore
+  const falseAssigneeScoreB = solutionB.falseAssigneeScore
+  // console.log("False A: ", falseAssigneeScoreA)
+  // console.log("False B: ", falseAssigneeScoreB)
+  let totalKpiOfA = 0, totalKpiOfB = 0, totalKpiMissA = 0, totalKpiMissB = 0
+  if (falseAssigneeScoreA === falseAssigneeScoreB) {
+    if (!falseAssigneeScoreA) {
+      // Nếu cả 2 đều gán oke => check KPI
+      let pointA = 0
+      let pointB = 0
+      let count = 0
+      for (let key in kpiTarget) {
+        count++;
+        totalKpiOfA += kpiAssignmentOfA[key] * kpiTarget[key].weight 
+        totalKpiOfB += kpiAssignmentOfB[key] * kpiTarget[key].weight 
+        if (kpiAssignmentOfA[key].toFixed(2) >= kpiTarget[key].value) {
+          pointA++;
+        } else {
+          totalKpiMissA += kpiTarget[key].value - kpiAssignmentOfA[key]
+        }
+        if (kpiAssignmentOfB[key].toFixed(2) >= kpiTarget[key].value) {
+          pointB++;
+        } else {
+          totalKpiMissB += kpiTarget[key].value - kpiAssignmentOfB[key]
+        }
+      }
+      // console.log("point A: ", pointA)
+      // console.log("point B: ", pointB)
+      if (pointA === pointB) {
+        if (pointA === count) {
+          // Nếu cả 2 đều đạt KPI target => xem xét độ lệch chuẩn
+          const standardDeviationRatioOfA = solutionA.standardDeviation
+          const standardDeviationRatioOfB = solutionB.standardDeviation
+          if (standardDeviationRatioOfA <= standardDeviationTarget && standardDeviationRatioOfB <= standardDeviationTarget) {
+            // Nếu đạt độ lệch chuẩn => xem xét về tổng KPI hoặc phí
+            // TRƯỚC MẶT SO TỔNG KPI
+            return totalKpiOfA >= totalKpiOfB
+          } else {
+            return standardDeviationRatioOfA <= standardDeviationRatioOfB
+          }
+        } else if (pointA) {
+          // Nếu = point mà có tiêu chí không đạt xem xét về độ thọt KPI tương ứng của bọn không đủ
+          return totalKpiMissA < totalKpiMissB
+        } else {
+          return totalKpiOfA > totalKpiOfB
+        }
+      } else {
+        // Nếu 2 point khác nhau
+        return pointA > pointB
+      }
+    } else {
+      if (solutionA.totalCost < solutionB.totalCost) {
+        return true
+      } else {
+        return totalKpiOfA > totalKpiOfB
+      }
+    }
+  } else {
+    return falseAssigneeScoreA < falseAssigneeScoreB
+  }
+}
+
+function findBestHarmonySolution(HM, kpiTarget, standardDeviationTarget) {
+  HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) ? -1 : 1)
+  return HM[0]
 }
 
 
@@ -216,9 +286,8 @@ function main() {
     }
   })
 
-  
 
-  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 5, bw = 2, MAX_TER = 1000
+  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 50, bw = 2, MAX_TER = 1000
   const kpiTarget = {
     'A': { value: 0.8, weight: 0.35 },
     'B': { value: 0.8, weight: 0.35 },
@@ -232,35 +301,29 @@ function main() {
   for (let i = 0; i < HM_SIZE; i++) {
     let randomSolution = initRandomHarmonyVector(job.tasks, employees, lastKPIs, i + 1)
     HM.push(randomSolution)
-    console.log("HM: ", i, JSON.parse(HM[i]).kpiAssignment)
+    // console.log("HM: ", i, " : ", "index: ", i + 1, ": ", HM[i].index, ": ", HM[i].kpiAssignment)
+    // if (HM[i].falseAssigneeScore === 0) {
+    //   console.log("check: ", getTotalKpi(HM[i].assignment, lastKPIs))
+    // }
   }
+
+  const bestSolution = findBestHarmonySolution(HM, kpiTarget, standardDeviationTarget)
+  console.log("best: ", bestSolution.kpiAssignment)
+  console.log("best check: ", getTotalKpi(bestSolution.assignment, lastKPIs))
+  
 
   // Test sắp xếp
+  HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) === true ? -1 : 1)
+
   for (let i = 0; i < HM_SIZE; i++) {
-    for (let j = i + 1; j < HM_SIZE; j++) {
-      const kpiAssignmentOfA = JSON.parse(HM[i]).kpiAssignment
-      const kpiAssignmentOfB = JSON.parse(HM[j]).kpiAssignment
-      let totalA = 0, totalB = 0
-      for (key in kpiAssignmentOfA) {
-        totalA += kpiAssignmentOfA[key]
-      }
-      for (key in kpiAssignmentOfB) {
-        totalB += kpiAssignmentOfB[key]
-      }
-      if (totalA < totalB) {
-        const temp = HM[i]
-        HM[i] = HM[j]
-        HM[j] = temp
-      }
+    console.log("HM after sort: ", i, " : ", "index: ", HM[i].index, ": ", "falseS: ", HM[i].falseAssigneeScore, "totalCost: ", HM[i].totalCost, ": ", HM[i].kpiAssignment)
+    if (HM[i].falseAssigneeScore === 0) {
+      console.log("check: ", getTotalKpi(HM[i].assignment, lastKPIs))
     }
   }
 
-  for (let i = 0; i < HM_SIZE; i++) {
-    console.log("HM after sort: ", i, " : ", "index: ", JSON.parse(HM[i]).index, ": ", JSON.parse(HM[i]).kpiAssignment)
-    if (JSON.parse(HM[i]).falseAssigneeScore === 0) {
-      console.log("check: ", getTotalKpi(JSON.parse(HM[i]).assignment, lastKPIs))
-    }
-  }
+  // const testValue = compareSolution(HM[0], HM[1], kpiTarget, standardDeviationTarget)
+  // console.log("compare HM[0] and HM[1] after check: ", testValue)
 }
 
 
