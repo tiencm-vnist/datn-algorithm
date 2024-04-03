@@ -32,51 +32,6 @@ function getAvailableEmployeesForTasks(tasks, employees) {
   })
 }
 
-function getTotalKpi(assignment, tasksDictionary, lastKPIs) {
-  let initKPIValue = { ...KPI_TYPES }
-  for (let key in KPI_TYPES) {
-    initKPIValue[key].value = 0;
-  }
-
-  for(let i = 0; i < assignment.length; i++) {
-    const { taskId, assigneeId } = assignment[i]
-    const kpiOfAssignee = lastKPIs.find((item) => item.id == assigneeId) 
-    let kpiValue = kpiOfAssignee.kpiInTask[taskId]
-    if (kpiValue === KPI_NOT_WORK) {
-      kpiValue = 0
-      let listKPIInThisTask = lastKPIs.filter((item) => item.kpiInTask[taskId] !== -1).map((item) => item.kpiInTask[taskId]).sort((a, b) => a - b)
-      kpiValue = listKPIInThisTask[0]
-      // console.log("kpiValue: ", kpiValue)
-    } 
-
-    const { kpiInTask } = tasksDictionary[taskId]
-    kpiInTask.forEach((item) => {
-      const { type, weight } = item
-      initKPIValue[type].value += kpiValue * weight
-    })
-  }
-
-  return {...initKPIValue}
-}
-
-function getTotalCost(assignment, tasksDictionry, employeesDictionary, assetsDictionary) {
-  let totalCost = 0;
-
-  for(let i = 0; i < assignment.length; i++) {
-    const {taskId, assigneeId, assignAssets } = assignment[i]
-    const totalTimeOfTask = tasksDictionry[taskId + ''].estimateTime * DAY_WORK_HOURS
-    totalCost += totalTimeOfTask * employeesDictionary[assigneeId].costPerHour
-
-    // TODO
-    for (let i = 0; i < assignAssets.length; i++) {
-      const { id } = assignAssets[i]
-      totalCost += totalTimeOfTask * assetsDictionary[id].costPerHour
-    }
-  }
-
-  return totalCost
-}
-
 function calculateStandardDeviation(numbers) {
   // Bước 1: Tính trung bình của dãy số
   const mean = Object.values(numbers).reduce((acc, val) => acc + val, 0) / Object.keys(numbers).length;
@@ -90,28 +45,28 @@ function calculateStandardDeviation(numbers) {
   return standardDeviation / mean;
 }
 
-
-function getStandardDeviationOfKpi_SalaryRatio(assignment, tasksDictionary, employees, lastKPIs) {
+function getStandardDeviationOfKpi_SalaryRatio(assignment, employees, lastKPIs) {
   const kpiOfEmployee = {}
   for(let i = 0; i < employees.length; i++) {
     kpiOfEmployee[employees[i].id] = 0
   }
   for(let i = 0; i < assignment.length; i++) {
-    const { taskId, assigneeId } = assignment[i]
-    const { kpiInTask } = tasksDictionary[taskId]
-    const kpiOfAssignee = lastKPIs.find((item) => item.id === assigneeId) 
+    const { task, assignee } = assignment[i]
+    const { kpiInTask } = task
+    const { id } = assignee
+    const kpiOfAssignee = lastKPIs.find((item) => item.id === id) 
     // console.log("kpiOfAssignee: ")
-    let kpiValue = kpiOfAssignee.kpiInTask[taskId]
+    let kpiValue = kpiOfAssignee.kpiInTask[task.id]
     if (kpiValue === KPI_NOT_WORK) {
       kpiValue = 0
       // Lấy kpi tồi nhất của thằng nào đã làm task này rồi: TODO
-      let listKPIInThisTask = lastKPIs.filter((item) => item.kpiInTask[taskId] !== -1).map((item) => item.kpiInTask[taskId]).sort((a, b) => a - b)
+      let listKPIInThisTask = lastKPIs.filter((item) => item.kpiInTask[task.id] !== -1).map((item) => item.kpiInTask[task.id]).sort((a, b) => a - b)
       kpiValue = listKPIInThisTask[0]
     } 
     
     kpiInTask.forEach((kpiItem) => {
       const { type, weight } = kpiItem
-      kpiOfEmployee[assigneeId] += kpiValue * weight * KPI_TYPES[type].weight
+      kpiOfEmployee[id] += kpiValue * weight * KPI_TYPES[type].weight
     })
   }
 
@@ -127,201 +82,103 @@ function getStandardDeviationOfKpi_SalaryRatio(assignment, tasksDictionary, empl
 
 }
 
-function initRandomHarmonyVector(tasks, employees, assets, lastKPIs, tasksDictionary, employeesDictionary, assetsDictionary, index) {
-  let randomAssign = []
-  let assignee = {}
-  let asset = []
-  let empAssigned = []
-  let assigneeFalseScore = 0, assetFalseScore = 0, chenhLechRadioMax = 1000, kpiAssignment = {}, totalCost = 0
-  let standardDeviationRatio = 0
-  let kpiOfEmployee = {}
 
+function getTotalKpi(assignment, lastKPIs) {
+  const kpiAssignment = {}
+  for (let key in KPI_TYPES) {
+    kpiAssignment[key] = 0
+  }
+
+  assignment.forEach((assignmentItem) => {
+    const { task, assignee } = assignmentItem
+
+    const { kpiInTask } = task
+    const taskId = task.id
+    const assigneeId = assignee.id
+    let kpiValue = 0
+    kpiValue = lastKPIs.find((item) => item.id === assigneeId).kpiInTask[taskId]
+    if (kpiValue === KPI_NOT_WORK) {
+      const kpiWithTaskInPast = lastKPIs.map((item) => item.kpiInTask[taskId]).filter((item) => item !== -1).sort((a, b) => a - b)
+      kpiValue = kpiWithTaskInPast[0]
+    }
+
+    kpiInTask.forEach((kpiGetItem) => {
+      const { type, weight } = kpiGetItem
+      kpiAssignment[type] += kpiValue * weight
+    })
+  })
+
+  return kpiAssignment
+}
+
+function getTotalCost(assignment) {
+  let totalCost = 0
+  for (let i = 0; i < assignment.length; i++) {
+    const { task, assignee, assets } = assignment[i]
+    const { estimateTime } = task
+    const { costPerHour } = assignee
+    const timeForTask = estimateTime * DAY_WORK_HOURS
+    totalCost += timeForTask * costPerHour
+
+    for (let j = 0; j < assets.length; j++) {
+      totalCost += timeForTask * assets[j].costPerHour
+    }
+  }
+
+  return totalCost
+}
+
+function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
+  const randomAssignment = []
+  const empAssigned = []
+  let falseAssigneeScore = 0, falseAssetScore = 0, kpiAssignment = {}, kpiOfEmployee = {}, standardDeviation = 0, totalCost = 0
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i]
-    const { availableAssignee, availableAsset } = task
-    
-    assignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
-    if (!empAssigned.includes(assignee.id)) {
-      empAssigned.push(assignee.id)
-    }
-    
-    // TODO: assign asset for task
+    const { availableAssignee } = task
+    const assignEmployee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
 
-    // Add to current solution
-    randomAssign.push({
-      taskId: task.id,
-      assigneeId: assignee.id,
-      assignAssets: []
+    // TODO: code for available assets
+    const assignAssets = []
+
+    if (!empAssigned.includes(assignEmployee.id)) {
+      empAssigned.push(assignEmployee.id)
+    }
+
+    falseAssigneeScore = employees.length - empAssigned.length
+
+    randomAssignment.push({
+      task,
+      assignee: assignEmployee,
+      assets: assignAssets
     })
   }
 
-  // check is oke assignment?
-  if (empAssigned.length < employees.length) {
-    assigneeFalseScore += employees.length - empAssigned.length;
-    totalCost = getTotalCost(JSON.parse(JSON.stringify(randomAssign)), tasksDictionary, employeesDictionary, assetsDictionary)
-  } else {
-    kpiAssignment = getTotalKpi(JSON.parse(JSON.stringify(randomAssign)), tasksDictionary, lastKPIs)
-    totalCost = getTotalCost(JSON.parse(JSON.stringify(randomAssign)), tasksDictionary, employeesDictionary, assetsDictionary)
-    standardDeviationRatio = getStandardDeviationOfKpi_SalaryRatio(JSON.parse(JSON.stringify(randomAssign)), tasksDictionary, employees, lastKPIs).standardDeviation
-    kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(JSON.parse(JSON.stringify(randomAssign)), tasksDictionary, employees, lastKPIs).kpiOfEmployee
+  if (falseAssigneeScore === 0) {
+    // get total KPI
+    kpiAssignment = getTotalKpi(randomAssignment, lastKPIs)
+
+    // get kpi standard ratio 
+    kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).kpiOfEmployee
+    standardDeviation = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).standardDeviation
+
+    // get total cost
+    totalCost = getTotalCost(randomAssignment, lastKPIs)
   }
 
-  return {
+
+
+  const randomHarmonyVector = {
     index,
-    solution: JSON.parse(JSON.stringify(randomAssign)),
-    assigneeFalseScore,
-    assetFalseScore,
-    kpiAssignment: JSON.parse(JSON.stringify(kpiAssignment)),
+    assignment: randomAssignment,
+    falseAssetScore,
+    falseAssigneeScore,
     totalCost,
-    standardDeviationRatio,
-    kpiOfEmployee: JSON.parse(JSON.stringify(kpiOfEmployee))
+    kpiAssignment,
+    standardDeviation
   }
+  return JSON.stringify(randomHarmonyVector)
 }
 
-
-
-// function testA(objA) {
-//   let objB = { ...objA }
-//   let arr = [...objA.arr]
-//   objB['A'] = 0.1
-//   objB.arr = arr
-//   objB.arr[0] = -1
-//   return objB
-// }
-
-// return A có tốt hơn B không?
-function compareSolution(solutionAJSON, solutionBJSON, kpiTarget, standardDeviationTarget, tasksDictionary) {
-  const solutionA = JSON.parse(solutionAJSON)
-  const solutionB = JSON.parse(solutionBJSON)
-  console.log("solution A: ", solutionA.solution)
-  console.log("solution B: ", solutionB.solution)
-  const assigneeFalseScoreOfA = solutionA.assigneeFalseScore
-  const assigneeFalseScoreOfB = solutionB.assigneeFalseScore
-  let kpiAssignmentOfA = getTotalKpi(solutionA.solution, tasksDictionary, lastKPIs)
-  let kpiAssignmentOfB = getTotalKpi(solutionB.solution, tasksDictionary, lastKPIs)
-  console.log("KPI assignment of A: ", kpiAssignmentOfA)
-  console.log("KPI assignment of B: ", kpiAssignmentOfB)
-
-  if (assigneeFalseScoreOfA === assigneeFalseScoreOfB) {
-    if (assigneeFalseScoreOfA !== 0) {
-      // Chỉnh lại xem
-      return solutionA.totalCost < solutionB.totalCost
-    } else {
-
-
-
-      
-      let pointA = 0, pointB = 0, count = 0, totalKPIofA = 0, totalKPIofB = 0, totalMissKpiOfA = 0, totalMissKpiOfB = 0 
-      for (let key in kpiTarget) {
-        count++
-        totalKPIofA += kpiAssignmentOfA[key].value * kpiAssignmentOfA[key].weight
-        totalKPIofB += kpiAssignmentOfB[key].value * kpiAssignmentOfB[key].weight
-
-        if (kpiTarget[key].value <= kpiAssignmentOfA[key].value) {
-          pointA++
-        } else {
-          totalMissKpiOfA += kpiAssignmentOfA[key].value * kpiAssignmentOfA[key].weight
-        }
-
-        if (kpiTarget[key].value <= kpiAssignmentOfB[key].value) {
-          pointB++
-        } else {
-          totalMissKpiOfB += kpiAssignmentOfB[key].value * kpiAssignmentOfB[key].weight
-        }
-      }
-      if (pointA === pointB) {
-        // đã đạt ngưỡng
-        if (pointA === count) {
-          const standardDeviationRatioOfA = getStandardDeviationOfKpi_SalaryRatio(JSON.parse(JSON.stringify(solutionA.solution)), tasksDictionary, employees, lastKPIs)
-          const standardDeviationRatioOfB = getStandardDeviationOfKpi_SalaryRatio(JSON.parse(JSON.stringify(solutionB.solution)), tasksDictionary, employees, lastKPIs)
-          // Đã đạt ngưỡng thì quan tâm độ lệch chuẩn
-          if (standardDeviationRatioOfA <= standardDeviationRatioOfB) {
-            // đạt độ lệch chuẩn thì so sánh tổng KPI
-            if (standardDeviationRatioOfB <= standardDeviationTarget) {
-              return totalKPIofA >= totalKPIofB
-            } else {
-              return true
-            }
-          } else if (standardDeviationRatioOfA <= standardDeviationTarget) {
-            return totalKPIofA >= totalKPIofB
-          } else {
-            return false
-          }
-        } else {
-          return totalMissKpiOfA > totalMissKpiOfB
-        }
-      } else {
-        return pointA > pointB
-      }
-    }
-  } else {
-    return assigneeFalseScoreOfA < assigneeFalseScoreOfB
-  }
-}
-
-function customSort(solutionA, solutionB, kpiTarget, standardDeviationTarget, tasksDictionary) {
-  if (compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget, tasksDictionary)) {
-    return -1; // Trả về -1 nếu a tốt hơn b
-  } else {
-    return 1; // Trả về 1 nếu b tốt hơn a hoặc cả hai bằng nhau
-  }
-}
-
-function bubbleSort(HM, kpiTarget, standardDeviationTarget, tasksDictionary) {
-  const n = HM.length;
-  for (let i = 0; i < HM.length - 1; i++) {
-    for (let j = i + 1; j < HM.length; j++) {
-      let compareValue = compareSolution(HM[i], HM[j], kpiTarget, standardDeviationTarget, tasksDictionary)
-      
-      // console.log("compare: ", compareValue)
-      if (!compareValue) {
-        let temp = HM[i];
-        HM[i] = HM[j];
-        HM[j] = temp;
-      }
-    }
-  }
-  return HM;
-}
-
-function harmonySearch(hmSize, MAX_TER, PAR, HMCR, bw, tasks, employees, assets, lastKPIs, kpiTarget, standardDeviationTarget, tasksDictionary, employeesDictionary, assetsDictionary) {
-  // console.log("init: ")
-  // console.log("hmSize: ", hmSize)
-  // console.log("MAX_TER: ", MAX_TER)
-  // console.log("PAR: ", PAR)
-  // console.log("HMCR: ", HMCR)
-  // console.log("bw: ", bw)
-  // console.log("tasks: ", tasks)
-  // console.log("employees: ", employees)
-  // console.log("assets: ", assets)
-  // console.log("lastKPIs: ", lastKPIs)
-  // console.log("kpiTarget: ", kpiTarget)
-  // console.log("standardDeviationTarget: ", standardDeviationTarget)
-  
-  // Step 1: init random
-  let HM = []
-  for (let i = 0; i < hmSize; i++) {
-    let randomAssign = {}
-    randomAssign = initRandomHarmonyVector(tasks, employees, assets, lastKPIs, tasksDictionary, employeesDictionary, assetsDictionary, i + 1)
-    HM.push((JSON.stringify(randomAssign)))
-  }
-  console.log("HM: ", HM)
-
-  HM = bubbleSort(HM, kpiTarget, standardDeviationTarget, tasksDictionary)
-  console.log("HM: ", HM)
-
-  for (let i = 0; i < HM.length; i++) {
-    if (JSON.parse(HM[i]).assigneeFalseScore == 0) {
-      console.log("HM: ", i, ": ", JSON.parse(HM[i]).kpiAssignment)
-      console.log("random assign kpi HM: ", i, ": ", getTotalKpi(JSON.parse(HM[i]).solution, tasksDictionary, lastKPIs))
-    }
-  }
-
-  // Step 2
-  // get best solution of HM
-
-
-}
 
 function main() {
   // init sth
@@ -369,7 +226,41 @@ function main() {
   }
   const standardDeviationTarget = 0.5
 
-  harmonySearch(HM_SIZE, MAX_TER, PAR, HMCR, bw, job.tasks, employees, assets, lastKPIs, kpiTarget, standardDeviationTarget, tasksDictionary, employeesDictionary, assetsDictionary={})
+  // STep 1: init HM
+  let HM = []
+
+  for (let i = 0; i < HM_SIZE; i++) {
+    let randomSolution = initRandomHarmonyVector(job.tasks, employees, lastKPIs, i + 1)
+    HM.push(randomSolution)
+    console.log("HM: ", i, JSON.parse(HM[i]).kpiAssignment)
+  }
+
+  // Test sắp xếp
+  for (let i = 0; i < HM_SIZE; i++) {
+    for (let j = i + 1; j < HM_SIZE; j++) {
+      const kpiAssignmentOfA = JSON.parse(HM[i]).kpiAssignment
+      const kpiAssignmentOfB = JSON.parse(HM[j]).kpiAssignment
+      let totalA = 0, totalB = 0
+      for (key in kpiAssignmentOfA) {
+        totalA += kpiAssignmentOfA[key]
+      }
+      for (key in kpiAssignmentOfB) {
+        totalB += kpiAssignmentOfB[key]
+      }
+      if (totalA < totalB) {
+        const temp = HM[i]
+        HM[i] = HM[j]
+        HM[j] = temp
+      }
+    }
+  }
+
+  for (let i = 0; i < HM_SIZE; i++) {
+    console.log("HM after sort: ", i, " : ", "index: ", JSON.parse(HM[i]).index, ": ", JSON.parse(HM[i]).kpiAssignment)
+    if (JSON.parse(HM[i]).falseAssigneeScore === 0) {
+      console.log("check: ", getTotalKpi(JSON.parse(HM[i]).assignment, lastKPIs))
+    }
+  }
 }
 
 
