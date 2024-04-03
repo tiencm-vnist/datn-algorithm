@@ -207,6 +207,10 @@ function compareSolution(solutionAJSON, solutionBJSON, kpiTarget, standardDeviat
       // Chỉnh lại xem
       return solutionA.totalCost < solutionB.totalCost
     } else {
+
+
+
+      
       let pointA = 0, pointB = 0, count = 0, totalKPIofA = 0, totalKPIofB = 0, totalMissKpiOfA = 0, totalMissKpiOfB = 0 
       for (let key in kpiTarget) {
         count++
