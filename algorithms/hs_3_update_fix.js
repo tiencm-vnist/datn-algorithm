@@ -120,7 +120,7 @@ function getTotalCost(assignment) {
     const timeForTask = estimateTime * DAY_WORK_HOURS
     totalCost += timeForTask * costPerHour
 
-    for (let j = 0; j < assets.length; j++) {
+    for (let j = 0; j < assets?.length; j++) {
       totalCost += timeForTask * assets[j].costPerHour
     }
   }
@@ -144,14 +144,14 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
       empAssigned.push(assignEmployee.id)
     }
 
-    falseAssigneeScore = employees.length - empAssigned.length
-
+    
     randomAssignment.push({
       task,
       assignee: assignEmployee,
       assets: assignAssets
     })
   }
+  falseAssigneeScore = employees.length - empAssigned.length
 
   // get total KPI
   kpiAssignment = getTotalKpi(randomAssignment, lastKPIs)
@@ -161,7 +161,7 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
   standardDeviation = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).standardDeviation
 
   // get total cost
-  totalCost = getTotalCost(randomAssignment, lastKPIs)
+  totalCost = getTotalCost(randomAssignment)
 
   const randomHarmonyVector = {
     index,
@@ -244,8 +244,179 @@ function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarge
   }
 }
 
-function findBestHarmonySolution(HM, kpiTarget, standardDeviationTarget) {
+function findBestAndWorstHarmonySolution(HM, kpiTarget, standardDeviationTarget) {
   HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) ? -1 : 1)
+  return {
+    best: HM[0],
+    worst: HM[HM.length - 1]
+  }
+}
+
+function checkIsFitnessSolution(solution, kpiTarget, standardDeviationTarget) {
+  const kpiAssignmentOfSolution = solution.kpiAssignment
+  const standardDeviationRatioOfSolution = solution.standardDeviation
+  
+  if (standardDeviationRatioOfSolution > standardDeviationTarget) {
+    return false
+  }
+  for (let key in kpiTarget) {
+    if (kpiAssignmentOfSolution[key].toFixed(2) < kpiTarget[key].value) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function updateHarmonyMemory(HM, improviseSolution) {
+  HM.pop()
+  HM.push(improviseSolution)
+}
+
+function isHaveSameSolution(bestFitnessSolutions, currentBestSolution, ratio = 0.0001) {
+  const currentKpiAssignment = currentBestSolution.kpiAssignment
+  const currentStandardDeviation = currentBestSolution.standardDeviation
+  const currentTotalCost = currentBestSolution.totalCost
+
+  const isHaveSameSolution = bestFitnessSolutions.find((fitnessSolution) => {
+    const fitnessKpiAssignment = fitnessSolution.kpiAssignment
+    const fitnessStandarDeviation = fitnessSolution.standardDeviation
+    const fitnessTotalCost = fitnessSolution.totalCost
+    for (let key in fitnessKpiAssignment) {
+      const diffValue = Math.abs(currentKpiAssignment[currentKpiAssignment] - fitnessKpiAssignment[key])
+      if (diffValue > ratio) 
+        return false
+    }
+    const diffCost = Math.abs(fitnessTotalCost - currentTotalCost)
+    const diffStandard = Math.abs(currentStandardDeviation - fitnessStandarDeviation)
+    if (diffCost > ratio || diffStandard > ratio)
+      return false
+
+    return true
+  })
+
+  return isHaveSameSolution ? true : false
+}
+
+function harmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, tasks, employees, lastKPIs) {
+  
+  // STep 1: init HM
+  let HM = [], bestFitnessSolutions = []
+
+  for (let i = 0; i < hmSize; i++) {
+    let randomSolution = initRandomHarmonyVector(job.tasks, employees, lastKPIs, i + 1)
+    HM.push(randomSolution)
+  }
+  let standardDeviationTargetReduce = standardDeviationTarget
+  
+  
+  // STEP 2: 
+  for (let i = 0; i < maxIter; i++) {
+    const bestSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, standardDeviationTarget).best
+    const worstSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, standardDeviationTarget).worst
+
+    // if (i < Math.floor(maxIter / 16)) {
+    //   standardDeviationTargetReduce = standardDeviationTargetReduce
+    // } else if (i < Math.floor(maxIter / 8)) {
+    //   standardDeviationTargetReduce = 5 * standardDeviationTarget / 4
+    // } else if (i < Math.floor(maxIter / 4)) {
+    //   standardDeviationTargetReduce = 3 * standardDeviationTarget / 2
+    // } else if (i < Math.floor(maxIter / 2)) {
+    //   standardDeviationTargetReduce = 5 * standardDeviationTarget / 4
+    // } else if (i < Math.floor(3 * maxIter / 4)) {
+    //   standardDeviationTargetReduce = standardDeviationTarget
+    // } else {
+    //   standardDeviationTargetReduce = 0.99 * standardDeviationTarget
+    // }
+
+    let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, standardDeviationTargetReduce) 
+
+    if (isFitnessSolution) {
+      if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+        bestFitnessSolutions.push(bestSolution)
+      }
+      // standardDeviationTargetReduce = standardDeviationTargetReduce * 0.99
+    } 
+    let improviseAssignment = []
+    let empAssigned = []
+    let falseAssigneeScore = 0
+    let falseAssetScore = 0
+
+    const bestSolutionAssignment = bestSolution.assignment
+
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i]
+      const { availableAssignee, assignee, assets } = task
+  
+      let randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
+
+      if (Math.random() < HMCR) {
+        randomAssignee = bestSolutionAssignment.find((item) => item.task.id === task.id).assignee
+        if (Math.random() < PAR || !isFitnessSolution) {
+          let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+          randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
+          randomAssignee = availableAssignee[randomAssigneeIndex]
+        }
+      }
+
+      // Do for assets: TODO
+
+      if (!empAssigned.includes(randomAssignee.id)) {
+        empAssigned.push(randomAssignee.id)
+      }
+      
+      improviseAssignment.push({
+        task,
+        assignee: randomAssignee,
+        assets: assets
+      })
+    }
+
+    // total False
+    falseAssigneeScore = employees.length - empAssigned.length
+    // total False assets: TODO
+
+    // get total KPI
+    const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs)
+
+    // get total Cost
+    const totalCost = getTotalCost(improviseAssignment)
+
+    // get standard ratio
+    // const kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).kpiOfEmployee
+    const standardDeviation = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).standardDeviation
+
+    const improviseSolution = {
+      assignment: improviseAssignment,
+      falseAssetScore,
+      falseAssigneeScore,
+      totalCost,
+      kpiAssignment,
+      standardDeviation
+    }
+
+    // STEP 3
+    const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, standardDeviationTargetReduce) 
+    if (checkIsImproviseSolution) {
+      updateHarmonyMemory(HM, improviseSolution)
+    }
+  }
+
+  // // Test sắp xếp
+  // HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) === true ? -1 : 1)
+
+  // for (let i = 0; i < hmSize; i++) {
+  //   console.log("HM after sort: ", i, " : ", "index: ", HM[i].index, ": ", "falseS: ", HM[i].falseAssigneeScore, "totalCost: ", HM[i].totalCost, ": ", HM[i].kpiAssignment)
+  //   if (HM[i].falseAssigneeScore === 0) {
+  //     console.log("check: ", getTotalKpi(HM[i].assignment, lastKPIs))
+  //   }
+  // }
+
+  // const testValue = compareSolution(HM[0], HM[1], kpiTarget, standardDeviationTarget)
+  // console.log("compare HM[0] and HM[1] after check: ", testValue)
+
+  // STEP final: 
+  console.log("bests: ", bestFitnessSolutions)
   return HM[0]
 }
 
@@ -287,43 +458,17 @@ function main() {
   })
 
 
-  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 50, bw = 2, MAX_TER = 1000
+  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 50, bw = 1, MAX_TER = 20000
   const kpiTarget = {
     'A': { value: 0.8, weight: 0.35 },
     'B': { value: 0.8, weight: 0.35 },
     'C': { value: 0.8, weight: 0.3 },
   }
-  const standardDeviationTarget = 0.5
+  const standardDeviationTarget = 0.1
 
-  // STep 1: init HM
-  let HM = []
-
-  for (let i = 0; i < HM_SIZE; i++) {
-    let randomSolution = initRandomHarmonyVector(job.tasks, employees, lastKPIs, i + 1)
-    HM.push(randomSolution)
-    // console.log("HM: ", i, " : ", "index: ", i + 1, ": ", HM[i].index, ": ", HM[i].kpiAssignment)
-    // if (HM[i].falseAssigneeScore === 0) {
-    //   console.log("check: ", getTotalKpi(HM[i].assignment, lastKPIs))
-    // }
-  }
-
-  const bestSolution = findBestHarmonySolution(HM, kpiTarget, standardDeviationTarget)
-  console.log("best: ", bestSolution.kpiAssignment)
-  console.log("best check: ", getTotalKpi(bestSolution.assignment, lastKPIs))
-  
-
-  // Test sắp xếp
-  HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) === true ? -1 : 1)
-
-  for (let i = 0; i < HM_SIZE; i++) {
-    console.log("HM after sort: ", i, " : ", "index: ", HM[i].index, ": ", "falseS: ", HM[i].falseAssigneeScore, "totalCost: ", HM[i].totalCost, ": ", HM[i].kpiAssignment)
-    if (HM[i].falseAssigneeScore === 0) {
-      console.log("check: ", getTotalKpi(HM[i].assignment, lastKPIs))
-    }
-  }
-
-  // const testValue = compareSolution(HM[0], HM[1], kpiTarget, standardDeviationTarget)
-  // console.log("compare HM[0] and HM[1] after check: ", testValue)
+  const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs)
+  console.log("result: ", result.kpiAssignment, ": ", result.standardDeviation)
+  console.log("check: ", getTotalKpi(result.assignment, lastKPIs))
 }
 
 
