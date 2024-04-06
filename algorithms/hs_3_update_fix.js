@@ -1,6 +1,6 @@
 const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS } = require("../consts/kpi.const");
-const { scheduleTasks, topologicalSort } = require("../helper");
-const { assets } = require("../new_data/asset");
+const { scheduleTasks, topologicalSort, getAvailableTimeForAsset } = require("../helper");
+const { assets, assetAll } = require("../new_data/asset");
 const { employees } = require("../new_data/employee");
 const { lastKPIs } = require("../new_data/kpi");
 const { tasks } = require("../new_data/task");
@@ -176,16 +176,11 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
 }
 
 function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) {
-  // console.log("KPI target: ", kpiTarget)
-  // console.log("solution A: ", solutionA.index, " ", solutionA.kpiAssignment)
-  // console.log("solution B: ", solutionB.index, " ", solutionB.kpiAssignment)
-
   const kpiAssignmentOfA = solutionA.kpiAssignment
   const kpiAssignmentOfB = solutionB.kpiAssignment
   const falseAssigneeScoreA = solutionA.falseAssigneeScore
   const falseAssigneeScoreB = solutionB.falseAssigneeScore
-  // console.log("False A: ", falseAssigneeScoreA)
-  // console.log("False B: ", falseAssigneeScoreB)
+ 
   let totalKpiOfA = 0, totalKpiOfB = 0, totalKpiMissA = 0, totalKpiMissB = 0
   if (falseAssigneeScoreA === falseAssigneeScoreB) {
     if (!falseAssigneeScoreA) {
@@ -315,19 +310,19 @@ function harmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, standardDeviat
     const bestSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, standardDeviationTarget).best
     const worstSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, standardDeviationTarget).worst
 
-    // if (i < Math.floor(maxIter / 16)) {
-    //   standardDeviationTargetReduce = standardDeviationTargetReduce
-    // } else if (i < Math.floor(maxIter / 8)) {
-    //   standardDeviationTargetReduce = 5 * standardDeviationTarget / 4
-    // } else if (i < Math.floor(maxIter / 4)) {
-    //   standardDeviationTargetReduce = 3 * standardDeviationTarget / 2
-    // } else if (i < Math.floor(maxIter / 2)) {
-    //   standardDeviationTargetReduce = 5 * standardDeviationTarget / 4
-    // } else if (i < Math.floor(3 * maxIter / 4)) {
-    //   standardDeviationTargetReduce = standardDeviationTarget
-    // } else {
-    //   standardDeviationTargetReduce = 0.99 * standardDeviationTarget
-    // }
+    if (i < Math.floor(maxIter / 16)) {
+      standardDeviationTargetReduce = 5 * standardDeviationTarget / 4
+    } else if (i < Math.floor(maxIter / 8)) {
+      standardDeviationTargetReduce = 9 * standardDeviationTarget / 8
+    } else if (i < Math.floor(maxIter / 4)) {
+      standardDeviationTargetReduce = standardDeviationTarget
+    } else if (i < Math.floor(maxIter / 2)) {
+      standardDeviationTargetReduce = 31/32 * standardDeviationTarget
+    } else if (i < Math.floor(3 * maxIter / 4)) {
+      standardDeviationTargetReduce = 15/16 * standardDeviationTarget
+    } else {
+      standardDeviationTargetReduce = 7/8 * standardDeviationTarget
+    }
 
     let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, standardDeviationTargetReduce) 
 
@@ -416,9 +411,71 @@ function harmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, standardDeviat
   // console.log("compare HM[0] and HM[1] after check: ", testValue)
 
   // STEP final: 
-  console.log("bests: ", bestFitnessSolutions)
-  return HM[0]
+  return {
+    bestFind: HM[0],
+    bestFitnessSolutions
+  }
 }
+
+
+// SAVE result to ./output/output.json files
+const fileName = './algorithms/output/output.json'
+const fs = require('fs');
+
+function saveResult(newResult, fileName) {
+  // Đọc dữ liệu từ file JSON
+  fs.readFile(fileName, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Lỗi khi đọc file:', err);
+      return;
+    }
+
+    // Chuyển đổi dữ liệu từ chuỗi JSON thành mảng JavaScript
+    let testResults = [];
+    try {
+      testResults = JSON.parse(data);
+    } catch (err) {
+      console.error('Lỗi khi parse dữ liệu JSON:', err);
+      return;
+    }
+
+    // Thêm testResult mới vào mảng đã đọc từ file JSON
+    testResults.push(newResult);
+
+    // Chuyển đổi mảng đã cập nhật thành chuỗi JSON
+    const updatedData = JSON.stringify(testResults, null, 2);
+
+    // Ghi dữ liệu đã cập nhật vào file JSON
+    fs.writeFile(fileName, updatedData, (err) => {
+      if (err) {
+        console.error('Lỗi khi ghi vào file:', err);
+        return;
+      }
+      console.log(`Đã cập nhật và lưu dữ liệu vào file ${fileName}`);
+    });
+  });
+}
+
+function readDataFromFile(fileName) {
+  return new Promise((resolve, reject) => {
+    // Đọc dữ liệu từ file JSON
+    fs.readFile(fileName, 'utf8', (err, data) => {
+      if (err) {
+        reject(err); // Trả về lỗi nếu có lỗi khi đọc file
+        return;
+      }
+
+      try {
+        const dataArray = JSON.parse(data); // Chuyển đổi dữ liệu từ chuỗi JSON thành mảng JavaScript
+        resolve(dataArray); // Trả về mảng đã được đọc từ file
+      } catch (error) {
+        reject(error); // Trả về lỗi nếu có lỗi khi phân tích cú pháp JSON
+      }
+    });
+  });
+}
+
+
 
 
 function main() {
@@ -433,6 +490,20 @@ function main() {
   job.tasks = topologicalSort(tasks)
   job.tasks = scheduleTasks(job)
   job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+  
+  // const HM = [{ value: 4 }, { value: 1 }, { value: 2 }, { value: 5 }, { value: 7 }];
+  
+  // console.log("Before sorting:", HM); // In ra trước khi sắp xếp
+  // HM.sort((a, b) => a.value - b.value);
+  // console.log("After sorting:", HM); // In ra sau khi sắp xếp
+  
+  
+  // let newTasks = JSON.parse(JSON.stringify(job.tasks))
+  // console.log("newTasks: ", newTasks)
+
+  // newTasks = newTasks.sort((a, b) => (new Date(a.startTime).getTime() - new Date(b.startTime).getTime()))
+  // console.log("task: ", newTasks)
+  
 
   const tasksDictionary = {}
   tasks.forEach((task) => {
@@ -458,7 +529,7 @@ function main() {
   })
 
 
-  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 50, bw = 1, MAX_TER = 20000
+  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 4000
   const kpiTarget = {
     'A': { value: 0.8, weight: 0.35 },
     'B': { value: 0.8, weight: 0.35 },
@@ -466,10 +537,120 @@ function main() {
   }
   const standardDeviationTarget = 0.1
 
-  const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs)
-  console.log("result: ", result.kpiAssignment, ": ", result.standardDeviation)
-  console.log("check: ", getTotalKpi(result.assignment, lastKPIs))
+  let fitnessSolutions = []
+
+  let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+  
+  for (let i = 1; i < 10; i++) {
+    const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+    const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
+    if (!compareSolution(testResult, result)) {
+      testResult = result
+    }
+    // if (result.standardDeviation < 0.15) {
+    //   fitnessSolutions.push(result)
+    //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
+    // }
+  }
+
+  console.log("solution: ", testResult.assignment)
+  console.log("solution: ", testResult.kpiAssignment)
+  console.log("solution: ", testResult.standardDeviation)
+
+  saveResult(testResult, fileName)
+
+
+  // if (fitnessSolutions.length) {
+  //   fitnessSolutions.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB) ? -1 : 1)
+  // }
+
+
+}
+
+function gianTasks() {
+  
+  // Ví dụ sử dụng
+  const job = {
+    startTime: new Date(), // Thời gian bắt đầu công việc (ví dụ: thời điểm hiện tại)
+    tasks: [
+      { id: 1, preceedTasks: [], duration: 200000000, startTime: null, endTime: null },
+      { id: 2, preceedTasks: [1], duration: 100000000, startTime: null, endTime: null },
+      { id: 3, preceedTasks: [1], duration: 200000000, startTime: null, endTime: null },
+      // Thêm các nhiệm vụ khác nếu cần
+    ]
+  };
+
+  const scheduledTasks = scheduleTasks(job);
+  console.log(scheduledTasks);
+
+  const endTimes = {};
+
+// Duyệt qua từng task đã được sắp xếp
+  tasks.forEach(({ task, assignee }) => {
+    // Tìm thời gian bắt đầu cho task hiện tại
+    let startTime = task.startTime;
+    // Kiểm tra xem task có xung đột với các task đã được gán cho assignee không
+    if (assignee.id in endTimes && endTimes[assignee.id] > startTime) {
+      // Nếu có xung đột, cập nhật thời gian bắt đầu của task
+      startTime = endTimes[assignee.id];
+    }
+    // Gán thời gian bắt đầu và kết thúc cho task
+    task.startTime = startTime;
+    task.endTime = startTime + task.estimateTime;
+    // Cập nhật thời gian kết thúc mới cho assignee
+    endTimes[assignee.id] = task.endTime;
+  });
+}
+
+function reScheduleTasks(assignment, assets) {
+  let currentTime = assignment[0].task.startTime
+  assignment.sort((itemA, itemB) => new Date(itemA.task.endTime) - new Date(itemB.task.endTime))
+  assignment.forEach(({ task }) => {
+    task.startTime = new Date(task.startTime)
+    task.endTime = new Date(task.endTime)
+  })
+  // console.log("assignment: ", assignment)
+  const endTimeSaves = {}
+
+  assignment.forEach(({ task, assignee }) => {
+    let startTime = task.startTime
+    const preceedingTasks = task.preceedingTasks.map(id => assignment.find((item) => item.task.id === id).task)
+    if (preceedingTasks?.length > 0) {
+      const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
+      const timeAvailableForAsset = getAvailableTimeForAsset(task, assets)
+      task.startTime = new Date(Math.max(startTime, timeAvailableForAsset, maxEndTimeOfPreceedingTasks));
+    }
+    if (assignee.id in endTimeSaves && endTimeSaves[assignee.id].getTime() > task.startTime.getTime()) {
+      // Nếu có xung đột, cập nhật thời gian bắt đầu của task
+      task.startTime = endTimeSaves[assignee.id]
+    }
+    task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
+    endTimeSaves[assignee.id] = task.endTime;
+
+    currentTime = task.endTime;
+    // TODO: Gán assets
+
+  })
 }
 
 
-main()
+// main()
+
+function testResult() {
+  // Sử dụng hàm để đọc dữ liệu từ file
+  readDataFromFile(fileName)
+    .then((data) => {
+      const assignment = data[0].assignment
+
+      console.log('Dữ liệu từ file JSON:', assignment);
+      // Bạn có thể thực hiện các thao tác khác với mảng đã đọc được ở đây
+      reScheduleTasks(assignment, assets)
+
+      console.log("update assignment after re-schedule: ", assignment)
+    })
+    .catch((error) => {
+      console.error('Lỗi khi đọc dữ liệu từ file:', error);
+    });
+}
+
+testResult()

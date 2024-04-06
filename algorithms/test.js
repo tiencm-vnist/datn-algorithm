@@ -56,17 +56,3 @@ function scheduleTasks(job) {
 
   return sortedTasks;
 }
-
-// Ví dụ sử dụng
-const job = {
-  startTime: new Date(), // Thời gian bắt đầu công việc (ví dụ: thời điểm hiện tại)
-  tasks: [
-    { id: 1, preceedTasks: [], duration: 200000000, startTime: null, endTime: null },
-    { id: 2, preceedTasks: [1], duration: 100000000, startTime: null, endTime: null },
-    { id: 3, preceedTasks: [1], duration: 200000000, startTime: null, endTime: null },
-    // Thêm các nhiệm vụ khác nếu cần
-  ]
-};
-
-const scheduledTasks = scheduleTasks(job);
-console.log(scheduledTasks);
