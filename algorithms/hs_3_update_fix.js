@@ -5,6 +5,8 @@ const { employees } = require("../new_data/employee");
 const { lastKPIs } = require("../new_data/kpi");
 const { tasks } = require("../new_data/task");
 
+// CHIẾN LƯỢC 1: BƯỚC 1: GÁN TÀI NGUYÊN VÀ KHUNG THỜI GIAN SAO CHO NHỎ NHẤT CÓ THỂ (THỰC HIỆN SONG SONG VÀ CHECK LUÔN 1 TÀI NGUYÊN CHỈ THỰC HIỆN 1 TASK TẠI 1 THỜI ĐIỂM)
+
 
 function findEmployeesWithQualities(employees, requiredQualities) {
   const employeesWithRequiredQualities = employees.filter(employee => {
@@ -475,6 +477,173 @@ function readDataFromFile(fileName) {
   });
 }
 
+function isAssetCompatibleWithRequirement(asset, requireAsset) {
+  if (asset.type !== requireAsset.type) 
+    return false
+  for (const req of requireAsset.quality) {
+    const key = req.key;
+    const requiredValue = req.value;
+
+    const assetQuality = asset.qualities.find(q => q.key === key);
+    if (!assetQuality || assetQuality.level < requiredValue) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function findAvailableAssetsForTask(task, assets) {
+  const availableAssets = { inUse: [], readyToUse: [] };
+  if (!task.requireAsset?.length) {
+    return availableAssets
+  }
+
+  for (const require of task.requireAsset) {
+    let readyToUse = assets.readyToUse.filter(asset => isAssetCompatibleWithRequirement(asset, require));
+    let inUse = assets.inUse.filter(asset => isAssetCompatibleWithRequirement(asset, require));
+
+    availableAssets.readyToUse.push(...readyToUse);
+    availableAssets.inUse.push(...inUse);
+  }
+
+  // ĐÂY CHỈ LÀ AVAILABLE ASSETS CHỨ CHƯA TÍNH ĐẾN CHUYỆN CHECK TASKS THỰC HIỆN SONG SONG
+  return availableAssets;
+}
+
+function getAvailableTimeForAssetOfTask(task, assets) {
+  let availableAssets = []
+  if (task.requireAsset.length == 0) {
+    return {
+      taskAssets: [],
+      availableTime: new Date(0)
+    }
+  }
+
+  let availableTimes = [];
+  task.requireAsset.forEach(require => {
+    let readyToUse = assets.readyToUse.filter(asset => isAssetCompatibleWithRequirement(asset, require)).sort((a, b) => a.costPerHour - b.costPerHour)
+    // Nếu có tài nguyên yêu cầu và đủ số lượng => trả về timeavailable = 0 
+    if (readyToUse.length >= require.number) {
+      availableTimes.push(new Date(0));
+      for (let i = 0; i < require.number; i++) {
+        availableAssets.push(readyToUse[i])
+      }
+      // return {
+      //   taskAssets: availableAssets,
+      //   availableTime: new Date(0)
+      // }
+    }
+    else {
+      // Nếu không đủ số lượng
+      availableAssets = [...readyToUse]
+      const remain = require.number - readyToUse.length;
+      let inUse = assets.inUse.filter(asset => isAssetCompatibleWithRequirement(asset, require)).sort((a, b) => a.costPerHour - b.costPerHour);
+      if (inUse?.length && remain <= inUse?.length) {
+        // Lấy cả bọn tài nguyên đang được sử dụng ra 
+        inUse = inUse.sort((a, b) => {
+          const usageLogsA = a.usageLogs.sort((log1, log2) => new Date(log2.endDate) - new Date(log1.endDate))[0]
+          const usageLogsB = b.usageLogs.sort((log1, log2) => new Date(log2.endDate) - new Date(log1.endDate))[0]
+          return usageLogsA - usageLogsB
+        })
+        const inUseToPush = inUse.slice(0, remain)
+        availableAssets.push(...inUseToPush)
+        const logs = inUseToPush.map(_=>_.usageLogs.sort((a, b) => new Date(b.endDate) - new Date(a.endDate))[0].endDate).sort((a, b) =>  new Date(a) - new Date(b));
+        // trả về mảng logs mới nhất của các tài nguyên đang sử dụng, trong đó chứa endDate gần nhất (tức là endDate sẽ được dùng available) của từng thằng tài nguyên đang sử dụng)), logs theo thứ tự tăng dần của endaDate của từng thằng tài nguyên đang dùng
+        // Nến ví dụ cần 2 thằng thì thời điểm sớm nhất để 2 thằng đó được sử dụng là logs của thằng thứ 2 (remain - 1)
+        // console.log("logs: ", typeof logs[remain - 1])
+        availableTimes.push(new Date(logs[remain - 1]))
+        return {
+          taskAssets: availableAssets,
+          availableTime: new Date(Math.max(...availableTimes))
+        }
+      } else {
+        // Check từ đầu luôn khi tạo task cũng được
+        throw Error("Không đủ tài nguyên")
+      }
+    }
+  });
+  return {
+    taskAssets: availableAssets,
+    availableTime: new Date(Math.max(...availableTimes))
+  }
+}
+
+
+function markAssetsAsUsed(currentAssets, taskAssets, startTime, endTime) {
+  console.log("task assets: ", taskAssets.map((item) => {
+    return {
+      id: item.id,
+      status: item.status
+    }
+  }))
+  let updateInUse = currentAssets.inUse
+  let updateReadyToUse = currentAssets.readyToUse
+  
+  for (let i = 0; i < taskAssets.length; i++) {
+    let taskAsset = taskAssets[i]
+    const currentStatus = taskAsset.status
+    updateReadyToUse = updateReadyToUse.filter((item) => item.id !== taskAsset.id)
+    updateInUse = updateInUse.filter((item) => item.id !== taskAsset.id)
+    if (currentStatus === 'ready_to_use') {
+      taskAsset.status = 'in_use'
+    } else {
+    }
+    if (!taskAsset?.usageLogs) {
+      taskAsset.usageLogs = []
+    }
+    taskAsset.usageLogs.push({
+      startDate: startTime.toISOString(),
+      endDate: endTime.toISOString()
+    })
+
+    updateInUse.push({...taskAsset})
+  }
+  
+  return {
+    inUse: updateInUse,
+    readyToUse: updateReadyToUse
+  }
+}
+
+function scheduleTasksWithAsset(job, assets) {
+  const sortedTasks = topologicalSort(job.tasks);
+  // console.log("asset: ", assets)
+
+  let currentTime = job.startTime;
+
+  // JSON => date to string hết
+  let currentAssets = JSON.parse(JSON.stringify(assets))
+  for (const task of sortedTasks) {
+    // console.log("currentAsset: ", currentAssets.inUse.length, currentAssets.readyToUse.length, "id task: ", task.id)
+    const { taskAssets, availableTime } = getAvailableTimeForAssetOfTask(task, currentAssets);
+    // console.log("available: ", availableTime.getTime())
+    // console.log("task: ", task.id)
+    // console.log("taskAssets: ", taskAssets)
+    // Gán các tài nguyên đã chọn cho task
+    task.assets = taskAssets;
+
+    const preceedingTasks = task.preceedingTasks.map(id => job.tasks.find(t => t.id === id));
+    if (preceedingTasks?.length > 0 ) {
+      const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
+      // console.log("maxEndTimeOfPreceedingTasks: ", maxEndTimeOfPreceedingTasks)
+      // const availableTimeForAsset = getAvailableTimeForAssetOfTask(task, taskAssets);
+
+      // Tìm thời gian bắt đầu cho nhiệm vụ sau khi tất cả các nhiệm vụ tiền điều kiện của nó đã hoàn thành và tài nguyên cần được sử dụng rảnh rỗi
+      task.startTime = new Date(Math.max(availableTime.getTime(), maxEndTimeOfPreceedingTasks));
+    } else {
+      task.startTime = new Date(Math.max(job.startTime, availableTime));
+    }
+    task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
+
+    // Đánh dấu các tài nguyên đã được sử dụng trong khoảng thời gian thực hiện nhiệm vụ
+    currentAssets = markAssetsAsUsed(currentAssets, taskAssets, task.startTime, task.endTime);
+    // console.log("currentAssets: ", currentAssets)
+
+    currentTime = task.endTime;
+  }
+
+  return sortedTasks;
+}
 
 
 
@@ -488,8 +657,10 @@ function main() {
     tasks: tasks
   }
   job.tasks = topologicalSort(tasks)
-  job.tasks = scheduleTasks(job)
-  job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+  job.tasks = scheduleTasksWithAsset(job, assets)
+  // console.log("job.tasks: ", job.tasks)
+  // console.log("assets: ", assets.inUse[0].usageLogs)
+  // job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
   
   // const HM = [{ value: 4 }, { value: 1 }, { value: 2 }, { value: 5 }, { value: 7 }];
   
@@ -539,25 +710,25 @@ function main() {
 
   let fitnessSolutions = []
 
-  let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+  // let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
   
-  for (let i = 1; i < 10; i++) {
-    const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
-    const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
-    if (!compareSolution(testResult, result)) {
-      testResult = result
-    }
-    // if (result.standardDeviation < 0.15) {
-    //   fitnessSolutions.push(result)
-    //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
-    // }
-  }
+  // for (let i = 1; i < 10; i++) {
+  //   const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+  //   const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
+  //   if (!compareSolution(testResult, result)) {
+  //     testResult = result
+  //   }
+  //   // if (result.standardDeviation < 0.15) {
+  //   //   fitnessSolutions.push(result)
+  //   //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
+  //   // }
+  // }
 
-  console.log("solution: ", testResult.assignment)
-  console.log("solution: ", testResult.kpiAssignment)
-  console.log("solution: ", testResult.standardDeviation)
+  // console.log("solution: ", testResult.assignment)
+  // console.log("solution: ", testResult.kpiAssignment)
+  // console.log("solution: ", testResult.standardDeviation)
 
-  saveResult(testResult, fileName)
+  // saveResult(testResult, fileName)
 
 
   // if (fitnessSolutions.length) {
@@ -624,6 +795,7 @@ function reScheduleTasks(assignment, assets) {
       // Nếu có xung đột, cập nhật thời gian bắt đầu của task
       task.startTime = endTimeSaves[assignee.id]
     }
+    console.log("task.startTime: ", task.startTime)
     task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
     endTimeSaves[assignee.id] = task.endTime;
 
@@ -634,7 +806,7 @@ function reScheduleTasks(assignment, assets) {
 }
 
 
-// main()
+main()
 
 function testResult() {
   // Sử dụng hàm để đọc dữ liệu từ file
@@ -653,4 +825,4 @@ function testResult() {
     });
 }
 
-testResult()
+// testResult()
