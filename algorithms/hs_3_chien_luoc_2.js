@@ -5,11 +5,11 @@ const { employees } = require("../new_data/employee");
 const { lastKPIs } = require("../new_data/kpi");
 const { tasks } = require("../new_data/task");
 
-
-/* CHIẾN LƯỢC 1:
+/* CHIẾN LƯỢC 2:
   Bước 1: gán thời gian cho task + tài nguyên ==> Tối ưu nhất có thể
-  Bước 2: Gán người cho task => không quan tâm đến yếu tố 1 người không thể thực hiện task song song
-  Bước 3: chỉnh sửa lại lịch các task sao cho có thể thực hiện được (thằng nào đang thực hiện 2 việc cùng 1 lúc thì phải thay đổi lại cách gán)
+  Bước 2: Gán người cho task => chặn luôn ràng buộc 1 người chỉ làm 1 task (Nếu có phải làm => không có thằng nào thay thế => Tạm gán)
+  Bước 3 (CÓ THỂ CÓ): chỉnh sửa lại lịch các task sao cho có thể thực hiện được (thằng nào đang thực hiện 2 việc cùng 1 lúc thì phải thay đổi lại cách gán)
+
 */
 
 function findEmployeesWithQualities(employees, requiredQualities) {
@@ -87,7 +87,6 @@ function getStandardDeviationOfKpi_SalaryRatio(assignment, employees, lastKPIs) 
   return { kpiOfEmployee, standardDeviation } 
 
 }
-
 
 function getTotalKpi(assignment, lastKPIs) {
   const kpiAssignment = {}
@@ -209,6 +208,7 @@ function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarge
           totalKpiMissB += kpiTarget[key].value - kpiAssignmentOfB[key]
         }
       }
+
       // console.log("point A: ", pointA)
       // console.log("point B: ", pointB)
       if (pointA === pointB) {
@@ -545,30 +545,31 @@ function main() {
 
   let fitnessSolutions = []
 
-  let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+  // let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
   
-  for (let i = 1; i < 10; i++) {
-    const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
-    const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
-    if (!compareSolution(testResult, result)) {
-      testResult = result
-    }
-    // if (result.standardDeviation < 0.15) {
-    //   fitnessSolutions.push(result)
-    //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
-    // }
-  }
+  // for (let i = 1; i < 10; i++) {
+  //   const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+  //   const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
+  //   if (!compareSolution(testResult, result)) {
+  //     testResult = result
+  //   }
+  //   // if (result.standardDeviation < 0.15) {
+  //   //   fitnessSolutions.push(result)
+  //   //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
+  //   // }
+  // }
 
-  console.log("solution: ", testResult.assignment)
-  console.log("solution: ", testResult.kpiAssignment)
-  console.log("solution: ", testResult.standardDeviation)
+  // console.log("solution: ", testResult.assignment)
+  // console.log("solution: ", testResult.kpiAssignment)
+  // console.log("solution: ", testResult.standardDeviation)
 
-  saveResult(testResult, fileName)
+  // saveResult(testResult, fileName)
 
 
   // if (fitnessSolutions.length) {
   //   fitnessSolutions.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB) ? -1 : 1)
   // }
+
 
 
 }
@@ -640,7 +641,7 @@ function reScheduleTasks(assignment, assets) {
 }
 
 
-// main()
+main()
 
 function testResult() {
   // Sử dụng hàm để đọc dữ liệu từ file
@@ -659,4 +660,5 @@ function testResult() {
     });
 }
 
-testResult()
+// testResult()
+

@@ -383,6 +383,31 @@ function scheduleTasksNotParalell(job) {
   return job.tasks;
 }
 
+function scheduleTasksWithAsset(job, assets) {
+  // console.log("job.startTime: ", job.startTime)
+  // Sắp xếp các nhiệm vụ theo thứ tự topological
+  const sortedTasks = topologicalSort(job.tasks);
+
+  // Gán startTime và endTime cho từng nhiệm vụ
+  let currentTime = job.startTime;
+  for (const task of sortedTasks) {
+    // Kiểm tra xem tất cả các nhiệm vụ tiên quyết đã hoàn thành chưa
+    const preceedingTasks = task.preceedingTasks.map(id => job.tasks.find(t => t.id === id));
+    if (preceedingTasks?.length > 0 ) {
+      const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
+      const timeAvailableForAsset = getAvailableTimeForAsset(task, assets)
+      task.startTime = new Date(Math.max(timeAvailableForAsset, maxEndTimeOfPreceedingTasks));
+      // task.startTime = new Date(maxEndTimeOfPreceedingTasks);
+    } else {
+      task.startTime = job.startTime;
+    }
+    task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
+    currentTime = task.endTime;
+  }
+
+  return sortedTasks;
+}
+
 // console.log("Helper OK")
 module.exports = {
   topologicalSort,

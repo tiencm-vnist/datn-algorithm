@@ -1,4 +1,4 @@
-const { topologicalSort, scheduleTasks, assignTasks } = require('../helper');
+const { topologicalSort, scheduleTasks, assignTasks } = require('../../helper');
 
 
 // Các biến toàn cục
