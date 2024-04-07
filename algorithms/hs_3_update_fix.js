@@ -525,6 +525,18 @@ function getAvailableTimeForAssetOfTask(task, assets) {
     // Nếu có tài nguyên yêu cầu và đủ số lượng => trả về timeavailable = 0 
     if (readyToUse.length >= require.number) {
       availableTimes.push(new Date(0));
+      readyToUse = readyToUse.sort((a, b) => {
+        const usageLogsA = a?.usageLogs ? a?.usageLogs.sort((log1, log2) => new Date(log2.endDate) - new Date(log1.endDate))[0] : new Date(0)
+        const usageLogsB = b?.usageLogs ? b?.usageLogs.sort((log1, log2) => new Date(log2.endDate) - new Date(log1.endDate))[0] : new Date(0)
+        return usageLogsA - usageLogsB
+      })
+      let logsReadyToUse = readyToUse.filter((item) => item?.usageLogs)
+      if (logsReadyToUse?.length) {
+        logsReadyToUse = logsReadyToUse.map(_ => _.usageLogs.sort((a, b) => new Date(b.endDate) - new Date(a.endDate))[0].endDate).sort((a, b) => new Date(b) - new Date(a));
+        availableTimes.push(new Date(logsReadyToUse[0]))
+      }
+      // console.log("avaiTime in ready: ", availableTimes, "task: ", task.id)
+      
       for (let i = 0; i < require.number; i++) {
         availableAssets.push(readyToUse[i])
       }
@@ -562,6 +574,7 @@ function getAvailableTimeForAssetOfTask(task, assets) {
       }
     }
   });
+  // console.log("available Time: ", new Date(Math.max(...availableTimes)), "task: ", task.id)
   return {
     taskAssets: availableAssets,
     availableTime: new Date(Math.max(...availableTimes))
@@ -570,24 +583,18 @@ function getAvailableTimeForAssetOfTask(task, assets) {
 
 
 function markAssetsAsUsed(currentAssets, taskAssets, startTime, endTime) {
-  console.log("task assets: ", taskAssets.map((item) => {
-    return {
-      id: item.id,
-      status: item.status
-    }
-  }))
+  // console.log("task assets: ", taskAssets.map((item) => {
+  //   return {
+  //     id: item.id,
+  //     status: item.status
+  //   }
+  // }))
   let updateInUse = currentAssets.inUse
   let updateReadyToUse = currentAssets.readyToUse
   
   for (let i = 0; i < taskAssets.length; i++) {
     let taskAsset = taskAssets[i]
     const currentStatus = taskAsset.status
-    updateReadyToUse = updateReadyToUse.filter((item) => item.id !== taskAsset.id)
-    updateInUse = updateInUse.filter((item) => item.id !== taskAsset.id)
-    if (currentStatus === 'ready_to_use') {
-      taskAsset.status = 'in_use'
-    } else {
-    }
     if (!taskAsset?.usageLogs) {
       taskAsset.usageLogs = []
     }
@@ -595,8 +602,16 @@ function markAssetsAsUsed(currentAssets, taskAssets, startTime, endTime) {
       startDate: startTime.toISOString(),
       endDate: endTime.toISOString()
     })
+    if (currentStatus === 'ready_to_use') {
+      taskAsset.status = 'in_use'
+      updateReadyToUse = updateReadyToUse.filter((item) => item.id !== taskAsset.id)
+      updateReadyToUse.push({...taskAsset})
+    } else {
+      updateInUse = updateInUse.filter((item) => item.id !== taskAsset.id)
+      updateInUse.push({...taskAsset})
+    }
+    
 
-    updateInUse.push({...taskAsset})
   }
   
   return {
