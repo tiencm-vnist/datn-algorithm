@@ -675,7 +675,7 @@ function main() {
   job.tasks = scheduleTasksWithAsset(job, assets)
   // console.log("job.tasks: ", job.tasks)
   // console.log("assets: ", assets.inUse[0].usageLogs)
-  // job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+  job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
   
   // const HM = [{ value: 4 }, { value: 1 }, { value: 2 }, { value: 5 }, { value: 7 }];
   
@@ -725,25 +725,25 @@ function main() {
 
   let fitnessSolutions = []
 
-  // let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+  let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
   
-  // for (let i = 1; i < 10; i++) {
-  //   const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
-  //   const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
-  //   if (!compareSolution(testResult, result)) {
-  //     testResult = result
-  //   }
-  //   // if (result.standardDeviation < 0.15) {
-  //   //   fitnessSolutions.push(result)
-  //   //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
-  //   // }
-  // }
+  for (let i = 1; i < 10; i++) {
+    const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+    const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
+    if (!compareSolution(testResult, result)) {
+      testResult = result
+    }
+    // if (result.standardDeviation < 0.15) {
+    //   fitnessSolutions.push(result)
+    //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
+    // }
+  }
 
-  // console.log("solution: ", testResult.assignment)
-  // console.log("solution: ", testResult.kpiAssignment)
-  // console.log("solution: ", testResult.standardDeviation)
+  console.log("solution: ", testResult.assignment)
+  console.log("solution: ", testResult.kpiAssignment)
+  console.log("solution: ", testResult.standardDeviation)
 
-  // saveResult(testResult, fileName)
+  saveResult(testResult, fileName)
 
 
   // if (fitnessSolutions.length) {
@@ -827,7 +827,7 @@ function testResult() {
   // Sử dụng hàm để đọc dữ liệu từ file
   readDataFromFile(fileName)
     .then((data) => {
-      const assignment = data[0].assignment
+      const assignment = data[data.length - 1].assignment
 
       console.log('Dữ liệu từ file JSON:', assignment);
       // Bạn có thể thực hiện các thao tác khác với mảng đã đọc được ở đây
@@ -840,4 +840,4 @@ function testResult() {
     });
 }
 
-// testResult()
+testResult()
