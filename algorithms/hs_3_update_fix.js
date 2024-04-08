@@ -75,7 +75,7 @@ function getStandardDeviationOfKpi_SalaryRatio(assignment, employees, lastKPIs) 
   for (let key in kpiOfEmployee) {
     const id = Number(key)
     const employee = employees.find((item) => item.id === id)
-    kpiOfEmployee[key] = kpiOfEmployee[key] / employee.costPerHour 
+    kpiOfEmployee[key] = kpiOfEmployee[key] / employee.capacity 
   }
 
   const standardDeviation = calculateStandardDeviation(kpiOfEmployee)
@@ -821,6 +821,7 @@ function reScheduleTasks(assignment, assets) {
           assetConflict = true;
           // Nếu có xung đột với tài nguyên, cập nhật thời gian bắt đầu của task
           task.startTime = assetAssignments[assetId];
+          console.log("vao day: ", task.startTime)
         }
       });
       // Nếu có xung đột với tài nguyên, xem xét lại thời gian kết thúc của task
@@ -845,7 +846,7 @@ function reScheduleTasks(assignment, assets) {
 }
 
 
-main()
+// main()
 
 function testResult() {
   // Sử dụng hàm để đọc dữ liệu từ file
@@ -856,8 +857,11 @@ function testResult() {
       // console.log('Dữ liệu từ file JSON:', assignment);
       // Bạn có thể thực hiện các thao tác khác với mảng đã đọc được ở đây
       reScheduleTasks(assignment, assets)
-
       console.log("update assignment after re-schedule: ", assignment)
+      console.log("ratio: ", getStandardDeviationOfKpi_SalaryRatio(assignment, employees, lastKPIs).kpiOfEmployee)
+      console.log("ratio: ", getStandardDeviationOfKpi_SalaryRatio(assignment, employees, lastKPIs).standardDeviation)
+      console.log("solution: ", getTotalKpi(assignment, lastKPIs))
+
     })
     .catch((error) => {
       console.error('Lỗi khi đọc dữ liệu từ file:', error);

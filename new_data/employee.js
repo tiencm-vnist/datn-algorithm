@@ -18,7 +18,8 @@ const employees = [
       unit_test: 1,
       manual_test: 1,
       automation_test: 3,
-    }
+    },
+    capacity: 85
   },
   {
     id: 2, 
@@ -39,7 +40,8 @@ const employees = [
       automation_test: 4,
       unit_test: 2,
       manual_test: 1,
-    }
+    },
+    capacity: 70
   },
   {
     id: 3, 
@@ -60,8 +62,8 @@ const employees = [
       automation_test: 3,
       unit_test: 1,
       manual_test: 1,
-    }
-
+    },
+    capacity: 40
   },
   {
     id: 7, 
@@ -82,7 +84,8 @@ const employees = [
       ci_cd: 2,
       unit_test: 2,
       manual_test: 1,
-    }
+    },
+    capacity: 45
   },
   {
     id: 4, 
@@ -102,7 +105,8 @@ const employees = [
       docker: 2,
       unit_test: 2,
       manual_test: 1,
-    }
+    },
+    capacity: 22
   },
   {
     id: 8, 
@@ -121,7 +125,8 @@ const employees = [
       year_of_exp: 1,
       unit_test: 2,
       manual_test: 1,
-    }
+    },
+    capacity: 19
   },
   {
     id: 5,
@@ -138,7 +143,8 @@ const employees = [
       manual_test: 5,
       automation_test: 3,
       unit_test: 4,
-    }
+    },
+    capacity: 35
   },
   {
     id: 6,
@@ -155,7 +161,8 @@ const employees = [
       manual_test: 4,
       automation_test: 2,
       unit_test: 3,
-    }
+    },
+    capacity: 70
   }
 ]
 

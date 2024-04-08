@@ -1,6 +1,6 @@
-const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS, KPI_INIT_TYPES } = require('../consts/kpi.const')
-const { topologicalSort, scheduleTasks, scheduleTasksNotParalell } = require('../helper')
-const { lastKPIs } = require('../new_data/kpi')
+const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS, KPI_INIT_TYPES } = require('../../consts/kpi.const')
+const { topologicalSort, scheduleTasks, scheduleTasksNotParalell } = require('../../helper')
+const { lastKPIs } = require('../../new_data/kpi')
 
 // Chiến lược 1: Gán cho nó có thể thực hiện song song trước ==> check trùng, duplicate rồi chỉnh sau
 // Chiến lược 2: Gán cho nó thực hiện đúng trước ==> co thời gian lại + điều chỉnh lại lịch sau
@@ -152,10 +152,10 @@ function calculatePointOfSolutionQuality(harmonyVectorA, tasks, employees, asset
 
 
 function init() {
-  employees = require('../new_data/employee').employees
-  tasks = require('../new_data/task').tasks
-  kpis = require('../new_data/kpi').lastKPIs
-  assets = require('../new_data/asset').assets
+  employees = require('../../new_data/employee').employees
+  tasks = require('../../new_data/task').tasks
+  kpis = require('../../new_data/kpi').lastKPIs
+  assets = require('../../new_data/asset').assets
   job = {
     startTime: START_DATE,
     tasks: tasks

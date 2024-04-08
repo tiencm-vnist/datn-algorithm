@@ -1,9 +1,9 @@
-const { KPI_INIT_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS, KPI_TYPES } = require("../consts/kpi.const");
-const { topologicalSort, scheduleTasks } = require("../helper");
-const { assets } = require("../new_data/asset");
-const { employees } = require("../new_data/employee");
-const { lastKPIs } = require("../new_data/kpi");
-const { tasks } = require("../new_data/task");
+const { KPI_INIT_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS, KPI_TYPES } = require("../../consts/kpi.const");
+const { topologicalSort, scheduleTasks } = require("../../helper");
+const { assets } = require("../../new_data/asset");
+const { employees } = require("../../new_data/employee");
+const { lastKPIs } = require("../../new_data/kpi");
+const { tasks } = require("../../new_data/task");
 let job = {}
 // let kpiTarget = {}
 
