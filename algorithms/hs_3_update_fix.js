@@ -1,5 +1,5 @@
 const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS } = require("../consts/kpi.const");
-const { scheduleTasks, topologicalSort, getAvailableTimeForAsset } = require("../helper");
+const { scheduleTasks, topologicalSort } = require("../helper");
 const { assets, assetAll } = require("../new_data/asset");
 const { employees } = require("../new_data/employee");
 const { lastKPIs } = require("../new_data/kpi");
@@ -492,23 +492,23 @@ function isAssetCompatibleWithRequirement(asset, requireAsset) {
   return true;
 }
 
-function findAvailableAssetsForTask(task, assets) {
-  const availableAssets = { inUse: [], readyToUse: [] };
-  if (!task.requireAsset?.length) {
-    return availableAssets
-  }
+// function findAvailableAssetsForTask(task, assets) {
+//   const availableAssets = { inUse: [], readyToUse: [] };
+//   if (!task.requireAsset?.length) {
+//     return availableAssets
+//   }
 
-  for (const require of task.requireAsset) {
-    let readyToUse = assets.readyToUse.filter(asset => isAssetCompatibleWithRequirement(asset, require));
-    let inUse = assets.inUse.filter(asset => isAssetCompatibleWithRequirement(asset, require));
+//   for (const require of task.requireAsset) {
+//     let readyToUse = assets.readyToUse.filter(asset => isAssetCompatibleWithRequirement(asset, require));
+//     let inUse = assets.inUse.filter(asset => isAssetCompatibleWithRequirement(asset, require));
 
-    availableAssets.readyToUse.push(...readyToUse);
-    availableAssets.inUse.push(...inUse);
-  }
+//     availableAssets.readyToUse.push(...readyToUse);
+//     availableAssets.inUse.push(...inUse);
+//   }
 
-  // ĐÂY CHỈ LÀ AVAILABLE ASSETS CHỨ CHƯA TÍNH ĐẾN CHUYỆN CHECK TASKS THỰC HIỆN SONG SONG
-  return availableAssets;
-}
+//   // ĐÂY CHỈ LÀ AVAILABLE ASSETS CHỨ CHƯA TÍNH ĐẾN CHUYỆN CHECK TASKS THỰC HIỆN SONG SONG
+//   return availableAssets;
+// }
 
 function getAvailableTimeForAssetOfTask(task, assets) {
   let availableAssets = []
