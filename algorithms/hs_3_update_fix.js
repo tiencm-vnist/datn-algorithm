@@ -797,26 +797,50 @@ function reScheduleTasks(assignment, assets) {
   })
   // console.log("assignment: ", assignment)
   const endTimeSaves = {}
+  const assetAssignments = {};
 
   assignment.forEach(({ task, assignee }) => {
     let startTime = task.startTime
     const preceedingTasks = task.preceedingTasks.map(id => assignment.find((item) => item.task.id === id).task)
     if (preceedingTasks?.length > 0) {
       const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
-      const timeAvailableForAsset = getAvailableTimeForAsset(task, assets)
-      task.startTime = new Date(Math.max(startTime, timeAvailableForAsset, maxEndTimeOfPreceedingTasks));
+      // const timeAvailableForAsset = getAvailableTimeForAsset(task, assets)
+      // task.startTime = new Date(Math.max(startTime, timeAvailableForAsset, maxEndTimeOfPreceedingTasks));
+      task.startTime = new Date(Math.max(startTime, maxEndTimeOfPreceedingTasks));
     }
     if (assignee.id in endTimeSaves && endTimeSaves[assignee.id].getTime() > task.startTime.getTime()) {
       // Nếu có xung đột, cập nhật thời gian bắt đầu của task
       task.startTime = endTimeSaves[assignee.id]
     }
-    console.log("task.startTime: ", task.startTime)
+    // console.log("task.startTime: ", task.startTime)
+    // Kiểm tra xung đột với tài nguyên
+    if (task.assets?.length) {
+      let assetConflict = false;
+      task.assets.forEach(asset => {
+        if (asset.id in assetAssignments && assetAssignments[asset.id].getTime() > task.startTime.getTime()) {
+          assetConflict = true;
+          // Nếu có xung đột với tài nguyên, cập nhật thời gian bắt đầu của task
+          task.startTime = assetAssignments[assetId];
+        }
+      });
+      // Nếu có xung đột với tài nguyên, xem xét lại thời gian kết thúc của task
+      if (assetConflict) {
+        task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
+      }
+    }
+    
     task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
     endTimeSaves[assignee.id] = task.endTime;
 
+    // Cập nhật lại thông tin về tài nguyên được gán
+    if (task.assets) {
+      task.assets.forEach(asset => {
+        assetAssignments[asset.id] = task.endTime;
+      });
+    }
+
     currentTime = task.endTime;
     // TODO: Gán assets
-
   })
 }
 
@@ -829,7 +853,7 @@ function testResult() {
     .then((data) => {
       const assignment = data[data.length - 1].assignment
 
-      console.log('Dữ liệu từ file JSON:', assignment);
+      // console.log('Dữ liệu từ file JSON:', assignment);
       // Bạn có thể thực hiện các thao tác khác với mảng đã đọc được ở đây
       reScheduleTasks(assignment, assets)
 
