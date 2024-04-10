@@ -7,13 +7,13 @@ const tasks = [
     endTime: null,
     requireAsset: [
       // { type: "Server", number: 1, technicalCapacity: 75 },
-      { 
-        type: "Laptop", 
-        number: 1, 
-        quality: [
-          { level: 1}
-        ]
-      },
+      // { 
+      //   type: "Laptop", 
+      //   number: 1, 
+      //   quality: [
+      //     { level: 1}
+      //   ]
+      // },
       { 
         type: "Pantry",
         number: 1, 
@@ -44,7 +44,15 @@ const tasks = [
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Laptop", 
+        number: 1, 
+        quality: [
+          { level: 2}
+        ]
+      },
+    ],
     estimateTime: 7,
     // requireAssign: {
     //   degree: {
@@ -82,7 +90,15 @@ const tasks = [
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Laptop", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     requireAssign: {
       degree: 2,
       frontend: 2,
@@ -107,7 +123,15 @@ const tasks = [
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Laptop", 
+        number: 1, 
+        quality: [
+          { level: 2 }
+        ]
+      },
+    ],
     requireAssign: {
       degree: 2,
       backend: 1,
@@ -134,15 +158,8 @@ const tasks = [
         type: "Server", 
         number: 1, 
         quality: [
-          { level: 3 }
-        ] 
-      },
-      { 
-        type: "Laptop", 
-        number: 1, 
-        quality: [
           { level: 2 }
-        ]
+        ] 
       },
     ],
     requireAssign: {
@@ -166,7 +183,15 @@ const tasks = [
     preceedingTasks: [10],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Table", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     // requireAssign: ["QA", "Tester"],
     requireAssign: {
       manual_test: 2,
@@ -187,7 +212,15 @@ const tasks = [
     preceedingTasks: [2, 3, 4, 9, 16, 17, 18],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Table", 
+        number: 1, 
+        quality: [
+          { level: 3}
+        ]
+      },
+    ],
     // requireAssign: ["Dev", "Tester", "Leader", "QA"],
     requireAssign: {
       manual_test: 1,
@@ -208,7 +241,15 @@ const tasks = [
     preceedingTasks: [7],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Table", 
+        number: 1, 
+        quality: [
+          { level: 2}
+        ]
+      },
+    ],
     // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       backend: 2,
@@ -230,7 +271,15 @@ const tasks = [
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Table", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     // requireAssign: ["Dev", "Tester"],
     requireAssign: {
       degree: 2,
@@ -251,7 +300,15 @@ const tasks = [
     preceedingTasks: [],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Table", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     requireAssign: {
       year_of_exp: 3,
 
@@ -271,7 +328,15 @@ const tasks = [
     preceedingTasks: [8],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Pantry", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     // requireAssign: ["Tester", "QA"],
     requireAssign: {
       english: 5
@@ -299,15 +364,6 @@ const tasks = [
           { level: 3 }
         ]
       },
-      { 
-        type: "Laptop", 
-        number: 1, 
-        quality: [
-          {
-            level: 2 
-          }
-        ]
-      },
     ],
     // requireAssign: ["Dev", "Leader"],
     requireAssign: {
@@ -330,7 +386,15 @@ const tasks = [
     preceedingTasks: [1],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Table", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     requireAssign: {
       year_of_exp: 2,
       english: 3
@@ -350,7 +414,15 @@ const tasks = [
     preceedingTasks: [],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Laptop", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     requireAssign: {
       year_of_exp: 2,
       english: 5
@@ -370,7 +442,15 @@ const tasks = [
     preceedingTasks: [5],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Table", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     requireAssign: {
       year_of_exp: 2,
       backend: 2,
@@ -393,7 +473,15 @@ const tasks = [
     preceedingTasks: [2, 13],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Laptop", 
+        number: 1, 
+        quality: [
+          { level: 2}
+        ]
+      },
+    ],
     // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       year_of_exp: 1,
@@ -415,7 +503,15 @@ const tasks = [
     preceedingTasks: [3, 13],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Laptop", 
+        number: 1, 
+        quality: [
+          { level: 2}
+        ]
+      },
+    ],
     // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       backend: 1,
@@ -436,7 +532,15 @@ const tasks = [
     preceedingTasks: [4, 13],
     startTime: null,
     endTime: null,
-    requireAsset: [],
+    requireAsset: [
+      { 
+        type: "Laptop", 
+        number: 1, 
+        quality: [
+          { level: 1}
+        ]
+      },
+    ],
     // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       frontend: 3,

@@ -73,6 +73,39 @@ const assetAll = [
       }
     ]
   },
+  {
+    id: 7,
+    type: "Table",
+    name: "Table 1",
+    qualities: [{
+      level: 2,
+    }],
+    costPerHour: 1.5,
+    status: 'ready_to_use',
+    logs: []
+  },
+  {
+    id: 8,
+    type: "Table",
+    name: "Table 2",
+    qualities: [{
+      level: 1,
+    }],
+    costPerHour: 1,
+    status: 'ready_to_use',
+    logs: []
+  },
+  {
+    id: 9,
+    type: "Table",
+    name: "Table 3",
+    qualities: [{
+      level: 3,
+    }],
+    costPerHour: 2,
+    status: 'ready_to_use',
+    logs: []
+  },
 ]
 
 const listAssetInUse = assetAll.filter((item) => item.status === 'in_use')

@@ -194,12 +194,12 @@ function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarge
         count++;
         totalKpiOfA += kpiAssignmentOfA[key] * kpiTarget[key].weight 
         totalKpiOfB += kpiAssignmentOfB[key] * kpiTarget[key].weight 
-        if (kpiAssignmentOfA[key].toFixed(2) >= kpiTarget[key].value) {
+        if (kpiAssignmentOfA[key].toFixed(4) >= kpiTarget[key].value) {
           pointA++;
         } else {
           totalKpiMissA += kpiTarget[key].value - kpiAssignmentOfA[key]
         }
-        if (kpiAssignmentOfB[key].toFixed(2) >= kpiTarget[key].value) {
+        if (kpiAssignmentOfB[key].toFixed(4) >= kpiTarget[key].value) {
           pointB++;
         } else {
           totalKpiMissB += kpiTarget[key].value - kpiAssignmentOfB[key]
@@ -257,7 +257,7 @@ function checkIsFitnessSolution(solution, kpiTarget, standardDeviationTarget) {
     return false
   }
   for (let key in kpiTarget) {
-    if (kpiAssignmentOfSolution[key].toFixed(2) < kpiTarget[key].value) {
+    if (kpiAssignmentOfSolution[key] < kpiTarget[key].value) {
       return false
     }
   }
@@ -660,7 +660,62 @@ function scheduleTasksWithAsset(job, assets) {
   return sortedTasks;
 }
 
+function reScheduleTasks(assignment, assets) {
+  let currentTime = assignment[0].task.startTime
+  assignment.sort((itemA, itemB) => new Date(itemA.task.endTime) - new Date(itemB.task.endTime))
+  assignment.forEach(({ task }) => {
+    task.startTime = new Date(task.startTime)
+    task.endTime = new Date(task.endTime)
+  })
+  // console.log("assignment: ", assignment)
+  const endTimeSaves = {}
+  const assetAssignments = {};
 
+  assignment.forEach(({ task, assignee }) => {
+    let startTime = task.startTime
+    const preceedingTasks = task.preceedingTasks.map(id => assignment.find((item) => item.task.id === id).task)
+    if (preceedingTasks?.length > 0) {
+      const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
+      // const timeAvailableForAsset = getAvailableTimeForAsset(task, assets)
+      // task.startTime = new Date(Math.max(startTime, timeAvailableForAsset, maxEndTimeOfPreceedingTasks));
+      task.startTime = new Date(Math.max(startTime, maxEndTimeOfPreceedingTasks));
+    }
+    if (assignee.id in endTimeSaves && endTimeSaves[assignee.id].getTime() > task.startTime.getTime()) {
+      // Nếu có xung đột, cập nhật thời gian bắt đầu của task
+      task.startTime = endTimeSaves[assignee.id]
+    }
+    // console.log("task.startTime: ", task.startTime)
+    // Kiểm tra xung đột với tài nguyên
+    if (task.assets?.length) {
+      let assetConflict = false;
+      task.assets.forEach(asset => {
+        if (asset.id in assetAssignments && assetAssignments[asset.id].getTime() > task.startTime.getTime()) {
+          assetConflict = true;
+          // Nếu có xung đột với tài nguyên, cập nhật thời gian bắt đầu của task
+          task.startTime = assetAssignments[asset.id];
+          // console.log("vao day: ", task.startTime)
+        }
+      });
+      // Nếu có xung đột với tài nguyên, xem xét lại thời gian kết thúc của task
+      if (assetConflict) {
+        task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
+      }
+    }
+    
+    task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
+    endTimeSaves[assignee.id] = task.endTime;
+
+    // Cập nhật lại thông tin về tài nguyên được gán
+    if (task.assets) {
+      task.assets.forEach(asset => {
+        assetAssignments[asset.id] = task.endTime;
+      });
+    }
+
+    currentTime = task.endTime;
+    // TODO: Gán assets
+  })
+}
 
 function main() {
   // init sth
@@ -725,25 +780,27 @@ function main() {
 
   let fitnessSolutions = []
 
-  let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
   
-  for (let i = 1; i < 10; i++) {
-    const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
-    const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
-    if (!compareSolution(testResult, result)) {
-      testResult = result
+  for (let j = 0; j < 1; j++) {
+    let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+    for (let i = 1; i < 10; i++) {
+      const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+      const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
+      if (!compareSolution(testResult, result)) {
+        testResult = result
+      }
+      // if (result.standardDeviation < 0.15) {
+      //   fitnessSolutions.push(result)
+      //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
+      // }
     }
-    // if (result.standardDeviation < 0.15) {
-    //   fitnessSolutions.push(result)
-    //   fitnessSolutions = fitnessSolutions.concat(bestFitnessSolutions)
-    // }
+    reScheduleTasks(testResult.assignment, assets)
+    // console.log("solution: ", testResult.assignment)
+    console.log("kpiAssignemt: ", testResult.kpiAssignment)
+    console.log("kpiAssignemt: ", getAvailableEmployeesForTasks(testResult.assignment))
   }
 
-  console.log("solution: ", testResult.assignment)
-  console.log("solution: ", testResult.kpiAssignment)
-  console.log("solution: ", testResult.standardDeviation)
-
-  saveResult(testResult, fileName)
+  // saveResult(testResult, fileName)
 
 
   // if (fitnessSolutions.length) {
@@ -788,62 +845,7 @@ function gianTasks() {
   });
 }
 
-function reScheduleTasks(assignment, assets) {
-  let currentTime = assignment[0].task.startTime
-  assignment.sort((itemA, itemB) => new Date(itemA.task.endTime) - new Date(itemB.task.endTime))
-  assignment.forEach(({ task }) => {
-    task.startTime = new Date(task.startTime)
-    task.endTime = new Date(task.endTime)
-  })
-  // console.log("assignment: ", assignment)
-  const endTimeSaves = {}
-  const assetAssignments = {};
 
-  assignment.forEach(({ task, assignee }) => {
-    let startTime = task.startTime
-    const preceedingTasks = task.preceedingTasks.map(id => assignment.find((item) => item.task.id === id).task)
-    if (preceedingTasks?.length > 0) {
-      const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
-      // const timeAvailableForAsset = getAvailableTimeForAsset(task, assets)
-      // task.startTime = new Date(Math.max(startTime, timeAvailableForAsset, maxEndTimeOfPreceedingTasks));
-      task.startTime = new Date(Math.max(startTime, maxEndTimeOfPreceedingTasks));
-    }
-    if (assignee.id in endTimeSaves && endTimeSaves[assignee.id].getTime() > task.startTime.getTime()) {
-      // Nếu có xung đột, cập nhật thời gian bắt đầu của task
-      task.startTime = endTimeSaves[assignee.id]
-    }
-    // console.log("task.startTime: ", task.startTime)
-    // Kiểm tra xung đột với tài nguyên
-    if (task.assets?.length) {
-      let assetConflict = false;
-      task.assets.forEach(asset => {
-        if (asset.id in assetAssignments && assetAssignments[asset.id].getTime() > task.startTime.getTime()) {
-          assetConflict = true;
-          // Nếu có xung đột với tài nguyên, cập nhật thời gian bắt đầu của task
-          task.startTime = assetAssignments[assetId];
-          console.log("vao day: ", task.startTime)
-        }
-      });
-      // Nếu có xung đột với tài nguyên, xem xét lại thời gian kết thúc của task
-      if (assetConflict) {
-        task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
-      }
-    }
-    
-    task.endTime = new Date(task.startTime.getTime() + task.estimateTime * 3600 * 1000 * 24);
-    endTimeSaves[assignee.id] = task.endTime;
-
-    // Cập nhật lại thông tin về tài nguyên được gán
-    if (task.assets) {
-      task.assets.forEach(asset => {
-        assetAssignments[asset.id] = task.endTime;
-      });
-    }
-
-    currentTime = task.endTime;
-    // TODO: Gán assets
-  })
-}
 
 
 // main()
@@ -868,4 +870,75 @@ function testResult() {
     });
 }
 
-testResult()
+// testResult()
+
+
+const ExcelJS = require('exceljs');
+const { getKpiOfEmployees } = require("./hs_helper");
+// const fs = require('fs');
+
+async function fillDataToExcel() {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Task KPIs');
+  const employeesheet = workbook.addWorksheet('Task KPIs of Employee');
+
+  const START_DATE = new Date()
+  START_DATE.setFullYear(2024, 4, 1)
+  START_DATE.setHours(0, 0, 0, 0)
+  job = {
+    startTime: START_DATE,
+    tasks: tasks
+  }
+  job.tasks = topologicalSort(tasks)
+  job.tasks = scheduleTasksWithAsset(job, assets)
+  // console.log("job.tasks: ", job.tasks)
+  // console.log("assets: ", assets.inUse[0].usageLogs)
+  job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+
+  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 4000
+  const kpiTarget = {
+    'A': { value: 0.8, weight: 0.35 },
+    'B': { value: 0.8, weight: 0.35 },
+    'C': { value: 0.8, weight: 0.3 },
+  }
+  const standardDeviationTarget = 0.1
+
+
+  for (let j = 0; j < 100; j++) {
+    // Add headers
+    worksheet.addRow(['Task ID', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Standard Ratio', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'Total KPI A of Assignee with All Tasks', 'Toal KPI B of Assignee with All Tasks', 'Total KPI C of Assignee with All Tasks']);
+    // add vào đây 
+    let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+    for (let i = 1; i < 8; i++) {
+      const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+      // const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
+      if (!compareSolution(testResult, result)) {
+        testResult = result
+      }
+    }
+    reScheduleTasks(testResult.assignment, assets)
+    const kpiAssignemt = testResult.kpiAssignment
+    const kpiOfEmployee = getKpiOfEmployees(testResult.assignment, employees, lastKPIs)
+    for (let i = 0; i < testResult.assignment.length; i++) {
+      const { task, assignee, assets } = testResult.assignment[i]
+      // console.log(task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.standardDeviation, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployee[assignee.id]['A'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployee[assignee.id]['C'])
+      worksheet.addRow([task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.standardDeviation, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployee[assignee.id]['A'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployee[assignee.id]['C']]);
+    }
+    
+
+    employeesheet.addRow(['Employee ID', 'Total KPI A of Assignee with All Tasks', 'Toal KPI B of Assignee with All Tasks', 'Total KPI C of Assignee with All Tasks', '', 'Total KPI A', 'Total KPI B', 'TotalKPI C', 'Standard']);
+    for (let i = 0; i < employees.length; i++) {
+      employeesheet.addRow([employees[i].id, kpiOfEmployee[employees[i].id]['A'], kpiOfEmployee[employees[i].id]['B'], kpiOfEmployee[employees[i].id]['C'], '', kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'], testResult.standardDeviation]);
+    }
+    console.log("j = ", j + 1)
+  }
+  
+
+  // Save workbook to a file
+  const filePath = 'task_kpis.xlsx';
+  await workbook.xlsx.writeFile(filePath);
+  console.log(`Excel file created at: ${filePath}`);
+}
+
+// Example usage
+fillDataToExcel();
