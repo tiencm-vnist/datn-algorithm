@@ -422,7 +422,7 @@ function getTotalCost(assignment) {
   return totalCost
 }
 
-function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
+function initRandomHarmonyVector(tasks, employees, lastKPIs, index = 0) {
   const randomAssignment = []
   const empAssigned = []
   let falseAssigneeScore = 0, falseAssetScore = 0, kpiAssignment = {}, kpiOfEmployee = {}, standardDeviation = 0, totalCost = 0
@@ -461,7 +461,7 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
   const kpiOfEmployees = getKpiOfEmployees(randomAssignment, employees, lastKPIs)
 
   const randomHarmonyVector = {
-    index,
+    // index,
     assignment: randomAssignment,
     falseAssetScore,
     falseAssigneeScore,
@@ -510,25 +510,25 @@ function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) 
           // Nếu cả 2 đều đạt KPI target => xem xét đạt KPI target của từng đứa
           let employeeTargetPointA = 0, employeeTargetPointB = 0
           for (let employeeId in kpiOfEmployeesTarget) {
-            // let flagA = true, flagB = true
-            // for (let kpiType in KPI_TYPES) {
-            //   if (kpiOfEmployeesA[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
-            //     flagA = false
-            //   }
-            //   if (kpiOfEmployeesB[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
-            //     flagB = false
-            //   }
+            let flagA = true, flagB = true
+            for (let kpiType in KPI_TYPES) {
+              if (kpiOfEmployeesA[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
+                flagA = false
+              }
+              if (kpiOfEmployeesB[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
+                flagB = false
+              }
+            }
+            if (flagA)
+              employeeTargetPointA++
+            if (flagB)
+              employeeTargetPointB++
+            // if (kpiOfEmployeesA[employeeId]['total'] >= kpiOfEmployeesTarget[employeeId]['total']) {
+            //   employeeTargetPointA++;
             // }
-            // if (flagA)
-            //   employeeTargetPointA++
-            // if (flagB)
-            //   employeeTargetPointB++
-            if (kpiOfEmployeesA[employeeId]['total'] >= kpiOfEmployeesTarget[employeeId]['total']) {
-              employeeTargetPointA++;
-            }
-            if (kpiOfEmployeesB[employeeId]['total'] >= kpiOfEmployeesTarget[employeeId]['total']) {
-              employeeTargetPointB++;
-            }
+            // if (kpiOfEmployeesB[employeeId]['total'] >= kpiOfEmployeesTarget[employeeId]['total']) {
+            //   employeeTargetPointB++;
+            // }
           }
           return employeeTargetPointA >= employeeTargetPointB
         } else if (pointA) {
@@ -571,15 +571,15 @@ function checkIsFitnessSolution(solution, kpiTarget, kpiOfEmployeesTarget) {
     }
   }
   for (let employeeId in kpiOfEmployeesTarget) {
-    // for (let kpiType in KPI_TYPES) {
-    //   if (kpiOfEmployees[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
-    //     return false
-    //   }
-    // }
-    // console.log(kpiOfEmployees[employeeId]['total'], kpiOfEmployeesTarget[employeeId]['total'])
-    if (kpiOfEmployees[employeeId]['total'] < kpiOfEmployeesTarget[employeeId]['total']) {
-      return false
+    for (let kpiType in KPI_TYPES) {
+      if (kpiOfEmployees[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
+        return false
+      }
     }
+    // console.log(kpiOfEmployees[employeeId]['total'], kpiOfEmployeesTarget[employeeId]['total'])
+    // if (kpiOfEmployees[employeeId]['total'] < kpiOfEmployeesTarget[employeeId]['total']) {
+    //   return false
+    // }
   }
 
   return true
@@ -772,7 +772,7 @@ function reScheduleTasks(assignment, assets) {
           assetConflict = true;
           // Nếu có xung đột với tài nguyên, cập nhật thời gian bắt đầu của task
           task.startTime = assetAssignments[asset.id];
-          console.log("vao day: ", task.startTime)
+          // console.log("vao day: ", task.startTime)
         }
       });
       // Nếu có xung đột với tài nguyên, xem xét lại thời gian kết thúc của task
@@ -908,6 +908,401 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
   }
 }
 
+// const fs = require('fs');
+
+async function fillDataToExcel() {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Task KPIs');
+  const employeesheet = workbook.addWorksheet('Task KPIs of Employee');
+
+  const START_DATE = new Date()
+  START_DATE.setFullYear(2024, 4, 1)
+  START_DATE.setHours(0, 0, 0, 0)
+  job = {
+    startTime: START_DATE,
+    tasks: tasks
+  }
+  job.tasks = topologicalSort(tasks)
+  job.tasks = scheduleTasksWithAsset(job, assets)
+  // console.log("job.tasks: ", job.tasks)
+  // console.log("assets: ", assets.inUse[0].usageLogs)
+  job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+
+  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 4000
+  const kpiTarget = {
+    'A': { value: 0.8, weight: 0.35 },
+    'B': { value: 0.8, weight: 0.35 },
+    'C': { value: 0.8, weight: 0.3 },
+  }
+  const standardDeviationTarget = 0.1
+
+
+  for (let j = 0; j < 100; j++) {
+    // Add headers
+    worksheet.addRow(['Task ID', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Standard Ratio', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'Total KPI A of Assignee with All Tasks', 'Toal KPI B of Assignee with All Tasks', 'Total KPI C of Assignee with All Tasks']);
+    // add vào đây 
+    let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+    for (let i = 1; i < 8; i++) {
+      const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+      // const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
+      if (!compareSolution(testResult, result)) {
+        testResult = result
+      }
+    }
+    reScheduleTasks(testResult.assignment, assets)
+    const kpiAssignemt = testResult.kpiAssignment
+    const kpiOfEmployee = getKpiOfEmployees(testResult.assignment, employees, lastKPIs)
+    for (let i = 0; i < testResult.assignment.length; i++) {
+      const { task, assignee, assets } = testResult.assignment[i]
+      // console.log(task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.standardDeviation, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployee[assignee.id]['A'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployee[assignee.id]['C'])
+      worksheet.addRow([task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.standardDeviation, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployee[assignee.id]['A'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployee[assignee.id]['C']]);
+    }
+    
+
+    employeesheet.addRow(['Employee ID', 'Total KPI A of Assignee with All Tasks', 'Toal KPI B of Assignee with All Tasks', 'Total KPI C of Assignee with All Tasks', '', 'Total KPI A', 'Total KPI B', 'TotalKPI C', 'Standard']);
+    for (let i = 0; i < employees.length; i++) {
+      employeesheet.addRow([employees[i].id, kpiOfEmployee[employees[i].id]['A'], kpiOfEmployee[employees[i].id]['B'], kpiOfEmployee[employees[i].id]['C'], '', kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'], testResult.standardDeviation]);
+    }
+    // console.log("j = ", j + 1)
+  }
+  
+
+  // Save workbook to a file
+  const filePath = 'task_kpis.xlsx';
+  await workbook.xlsx.writeFile(filePath);
+  console.log(`Excel file created at: ${filePath}`);
+}
+
+
+
+// FOR DLHS
+
+function initHM(HM, hmSize, tasks, employees, lastKPIs) {
+  for (let i = 0; i < hmSize; i++) {
+    let randomSolution = initRandomHarmonyVector(tasks, employees, lastKPIs)
+    HM.push(randomSolution)
+  }
+}
+
+function randomInRange(a, b) {
+  // Tính toán phạm vi giữa a và b
+  if (a > b) {
+    const temp = a;
+    a = b;
+    b = temp;
+  }
+ 
+  const range = b - a;
+  // Sinh số ngẫu nhiên trong phạm vi và trả về
+  return Math.random() * range + a;
+}
+
+function initPSL(PSL, m) {
+  for(let i = 0; i < m; i++) {
+    let HMCR = randomInRange(0.9, 1)
+    let PAR = randomInRange(0, 1)
+    PSL.push({
+      HMCR,
+      PAR
+    })
+  }
+}
+
+function selectRandomFromPSL(PSL) {
+  const randomIndex = Math.floor(Math.random() * PSL.length);
+  const selected = PSL[randomIndex];
+  PSL.splice(randomIndex, 1); // Xóa phần tử đã chọn khỏi mảng
+  return selected;
+}
+
+function refillPSL(PSL, WPSL, lastPSL, PSLSize) {
+  if(!WPSL?.length) {
+    PSL = lastPSL
+    return
+  }
+  for(let i = 0; i < PSLSize; i++) {
+    const random = Math.random();
+    if (random <= 0.75) {
+      const { HMCR, PAR } = WPSL[Math.floor(Math.random() * WPSL.length)]
+      PSL.push({
+        HMCR, PAR
+      })
+    } else {
+      const HMCR = randomInRange(0.9, 1);
+      const PAR = randomInRange(0, 1);
+      PSL.push({
+        HMCR, PAR
+      })
+    }
+  }
+  WPSL = []
+  return
+}
+
+function determineBW(BW_max, BW_min, FEs, Max_FEs) {
+  if (FEs < Max_FEs / 2) {
+    return BW_max - (BW_max - BW_min) * 2 * FEs / Max_FEs
+  } else {
+    return BW_min
+  }
+}
+
+function divideHM(HM, numSubs) {
+  const subHMs = [];
+  const chunkSize = Math.ceil(HM.length / numSubs); // Kích thước của mỗi phần con
+
+  for (let i = 0; i < HM.length; i += chunkSize) {
+      const chunk = HM.slice(i, i + chunkSize); // Chia mảng chính thành các phần con
+      subHMs.push(chunk); // Thêm phần con vào mảng subHMs
+  }
+
+  return subHMs;
+}
+
+function regroupSubHMs(subHMs, mSubs) {
+  // console.log("RỂ")
+  // Gộp các mảng con thành một mảng lớn
+  let mergedArray = subHMs.reduce((acc, cur) => acc.concat(cur), []);
+
+  // Xáo trộn mảng lớn bằng phương pháp xáo trộn mẫu (Fisher-Yates Shuffle)
+  for (let i = mergedArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [mergedArray[i], mergedArray[j]] = [mergedArray[j], mergedArray[i]];
+  }
+
+  // Chia đều các phần tử vào các mảng con mới
+  let newSubHMs = [];
+  const subHMSize = Math.ceil(mergedArray.length / mSubs);
+  for (let i = 0; i < mergedArray.length; i += subHMSize) {
+    newSubHMs.push(mergedArray.slice(i, i + subHMSize));
+  }
+
+  return newSubHMs;
+}
+
+// function newHMFromSubs(subHMs) {
+//   let newHM = []
+//   for (let i = 0; i < subHMs?.length; i++) {
+//     let bestLocal = findBestLocalSolution(subHMs[i])
+//     newHM.push(bestLocal)
+//   }
+//   return newHM
+// }
+
+function newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget) {
+  let newHM = []
+  for (let i = 0; i < subHMs?.length; i++) {
+    let bestLocal = findBestAndWorstHarmonySolution(subHMs[i], kpiTarget, kpiOfEmployeesTarget).best
+    newHM.push(bestLocal)
+  }
+  return newHM
+}
+
+function DLHS(HMS, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget) {
+  // Step 2: Initialize HM and PSL
+  let PSL = []
+  let HM = []
+  let WPSL = []
+  initHM(HM, HMS, tasks, employees, lastKPIs)
+  initPSL(PSL, PSLSize)
+  let lastPSL = PSL
+  let bestFitnessSolutions = []
+
+  // Step 3: Main loop
+  // Step 4: Randomly divide HM into m sub-HMs with the same size
+  let subHMs = divideHM(HM, numOfSub)
+  while (FEs < 0.9 * Max_FEs) {
+    
+    // Step 5: For each sub-HM
+    for (let subHM of subHMs) {
+      // console.log("FE: ", FEs)
+      // Step 5.1: Select HMCR, PAR, and determine BW
+      let { HMCR, PAR } = selectRandomFromPSL(PSL)
+      let bw = determineBW(BW_max, BW_min, FEs, Max_FEs)
+      // console.log("BW: ", BW)
+
+      // Step 5.2: Improvise a new harmony vector
+      const bestSolution = findBestAndWorstHarmonySolution(subHM, kpiTarget, kpiOfEmployeesTarget).best
+      const worstSolution = findBestAndWorstHarmonySolution(subHM, kpiTarget, kpiOfEmployeesTarget).worst
+      let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
+      if (isFitnessSolution) {
+        if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+          bestFitnessSolutions.push(bestSolution)
+        }
+      } 
+
+      let improviseAssignment = []
+      let empAssigned = []
+      let falseAssigneeScore = 0
+      let falseAssetScore = 0
+      const bestSolutionAssignment = bestSolution.assignment
+      tasks.forEach((task) => {
+        const { availableAssignee, assets } = task
+        let randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
+        if (Math.random() < HMCR) {
+          randomAssignee = bestSolutionAssignment.find((item) => item.task.id === task.id).assignee
+          
+          if (Math.random() < PAR || !isFitnessSolution) {
+            let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+            randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
+            randomAssignee = availableAssignee[randomAssigneeIndex]
+          }
+        }
+
+        // Do for assets: TODO
+        if (!empAssigned.includes(randomAssignee.id)) {
+          empAssigned.push(randomAssignee.id)
+        }
+        
+        improviseAssignment.push({
+          task,
+          assignee: randomAssignee,
+          assets: assets
+        })
+      })
+
+      // total False
+      falseAssigneeScore = employees.length - empAssigned.length
+      // total False assets: TODO
+
+      // get total KPI
+      const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs)
+
+      // get total Cost
+      const totalCost = getTotalCost(improviseAssignment)
+
+      // get standard ratio
+      // const kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).kpiOfEmployee
+      const standardDeviation = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).standardDeviation
+
+      const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs)
+
+      const improviseSolution = {
+        assignment: improviseAssignment,
+        falseAssetScore,
+        falseAssigneeScore,
+        totalCost,
+        kpiAssignment,
+        standardDeviation,
+        kpiOfEmployees
+      }
+
+      FEs++;
+
+      // Step 5.3: Update sub-HM and record HMCR and PAR into WPSL if X_new is better than X_w
+      const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, kpiOfEmployeesTarget) 
+      if (checkIsImproviseSolution) {
+        updateHarmonyMemory(subHM, improviseSolution)
+        
+        // record to WPLS
+        WPSL.push({
+          HMCR, PAR
+        })
+      }
+
+
+      // Step 5.4: Refill PSL if empty
+      if (PSL?.length === 0) {
+        // console.log("vào đây: ", FEs)
+        refillPSL(PSL, WPSL, lastPSL, PSLSize);
+        // console.log("PSL: ", PSL)
+      }
+    }
+
+    // Step 6: Check termination conditions
+    if (FEs !== 0 && FEs % R === 0) {
+      // console.log("vao day")
+      // console.log("subHMs L: ", subHMs.length)
+      subHMs = regroupSubHMs(subHMs, numOfSub);
+      // console.log("subHMs L: ", subHMs.length)
+    }
+  }
+
+  // Step 7: 
+  let newHM = newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget)
+  while (FEs < Max_FEs) {
+    // console.log("PSL: ", PSL)
+    let { HMCR, PAR } = selectRandomFromPSL(PSL)
+    let bw = determineBW(BW_max, BW_min, FEs, Max_FEs)
+
+    const bestSolution = findBestAndWorstHarmonySolution(newHM, kpiTarget, kpiOfEmployeesTarget).best
+    const worstSolution = findBestAndWorstHarmonySolution(newHM, kpiTarget, kpiOfEmployeesTarget).worst
+    let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
+    if (isFitnessSolution) {
+      if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+        bestFitnessSolutions.push(bestSolution)
+      }
+    } 
+
+    let improviseAssignment = []
+    let empAssigned = []
+    let falseAssigneeScore = 0
+    let falseAssetScore = 0
+    const bestSolutionAssignment = bestSolution.assignment
+    tasks.forEach((task) => {
+      const { availableAssignee, assets } = task
+      let randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
+      if (Math.random() < HMCR) {
+        randomAssignee = bestSolutionAssignment.find((item) => item.task.id === task.id).assignee
+        
+        if (Math.random() < PAR || !isFitnessSolution) {
+          let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+          randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
+          randomAssignee = availableAssignee[randomAssigneeIndex]
+        }
+      }
+
+      // Do for assets: TODO
+      if (!empAssigned.includes(randomAssignee.id)) {
+        empAssigned.push(randomAssignee.id)
+      }
+      
+      improviseAssignment.push({
+        task,
+        assignee: randomAssignee,
+        assets: assets
+      })
+    })
+
+    // total False
+    falseAssigneeScore = employees.length - empAssigned.length
+    // total False assets: TODO
+
+    // get total KPI
+    const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs)
+
+    // get total Cost
+    const totalCost = getTotalCost(improviseAssignment)
+
+    // get standard ratio
+    // const kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).kpiOfEmployee
+    const standardDeviation = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).standardDeviation
+
+    const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs)
+
+    const improviseSolution = {
+      assignment: improviseAssignment,
+      falseAssetScore,
+      falseAssigneeScore,
+      totalCost,
+      kpiAssignment,
+      standardDeviation,
+      kpiOfEmployees
+    }
+
+    const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, kpiOfEmployeesTarget) 
+    if (checkIsImproviseSolution) {
+      updateHarmonyMemory(newHM, improviseSolution)
+    }
+    FEs++;
+    // Step 5.4: Refill PSL if empty
+    if (PSL.length === 0) {
+      refillPSL(PSL, WPSL, lastPSL, PSLSize);
+    }
+  }
+  return newHM[0]
+}
+
 module.exports = {
   findEmployeesWithQualities,
   getAvailableEmployeesForTasks,
@@ -927,5 +1322,7 @@ module.exports = {
   splitKPIOfTaskToEmployees,
   splitKPIToEmployees,
   getKpiOfEmployees,
-  newHarmonySearch
+  newHarmonySearch,
+  fillDataToExcel,
+  DLHS
 }

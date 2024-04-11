@@ -439,7 +439,7 @@ function DLHS(hmSize, BW_max, BW_min, m, R, Max_FEs, FEs, tasks, employees, last
 
   let newHM = newHMFromSubs(subHMs);
   while (FEs < Max_FEs) {
-    // console.log("PSL: ", PSL)
+    console.log("PSL: ", PSL, "FES: ", FEs)
 
     let { HMCR, PAR } = selectRandomFromPSL(PSL)
     let BW = determineBW(BW_max, BW_min, FEs, Max_FEs);
@@ -514,12 +514,12 @@ function DLHS(hmSize, BW_max, BW_min, m, R, Max_FEs, FEs, tasks, employees, last
 
     FEs++;
     updateSubHM(newHM, HMCR, PAR, PSL, WPSL, x_new, newobj1, w1, newobj2, w2, newobj3, w3);
-    // // Step 5.4: Refill PSL if empty
-    // if (PSL.length === 0) {
-    //   refillPSL(PSL, WPSL, lastPSL, m);
-    // }
-    return newHM[0]
+    // Step 5.4: Refill PSL if empty
+    if (PSL.length === 0) {
+      refillPSL(PSL, WPSL, lastPSL, m);
+    }
   }
+  return newHM[0]
 }
 
 
@@ -549,13 +549,13 @@ function main() {
   w2 = 1 / (6 * tbSalary * totalTimeEstimate * 8)
   w1 = 2, w3 = 100;
 
-  console.log("HMSIZE: ", HMS)
-  console.log("MaxIter: ", Max_FEs)
+  // console.log("HMSIZE: ", HMS)
+  // console.log("MaxIter: ", Max_FEs)
 
   
   const result = DLHS(HMS, BW_max, BW_min, m, R, Max_FEs, FEs, tasks, employees, lastKPIs, w1, w2, w3)
 
-  console.log("result: ", result)
+  // console.log("result: ", result)
 }
 
 // CALL Main()
