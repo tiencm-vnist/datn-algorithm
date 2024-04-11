@@ -464,7 +464,7 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
   return randomHarmonyVector
 }
 
-function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) {
+function compareSolution(solutionA, solutionB, kpiTarget) {
   const kpiAssignmentOfA = solutionA.kpiAssignment
   const kpiAssignmentOfB = solutionB.kpiAssignment
   const falseAssigneeScoreA = solutionA.falseAssigneeScore
@@ -500,20 +500,15 @@ function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) 
         if (pointA === count) {
           // Nếu cả 2 đều đạt KPI target => xem xét đạt KPI target của từng đứa
           let employeeTargetPointA = 0, employeeTargetPointB = 0
-          for (let employeeId in kpiOfEmployeesTarget) {
-            let flagA = true, flagB = true
+          for (let employeeId in kpiOfEmployeesA) {
             for (let kpiType in KPI_TYPES) {
-              if (kpiOfEmployeesA[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
-                flagA = false
+              if (kpiOfEmployeesA[employeeId][kpiType]) {
+                employeeTargetPointA++
               }
-              if (kpiOfEmployeesB[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
-                flagB = false
+              if (kpiOfEmployeesB[employeeId][kpiType]) {
+                employeeTargetPointB++
               }
             }
-            if (flagA) 
-              employeeTargetPointA++
-            if (flagB)
-              employeeTargetPointB++
           }
           return employeeTargetPointA >= employeeTargetPointB
         } else if (pointA) {
@@ -538,15 +533,17 @@ function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) 
   }
 }
 
-function findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget) {
-  HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) ? -1 : 1)
+function findBestAndWorstHarmonySolution(HM, kpiTarget) {
+  HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget) ? -1 : 1)
   return {
     best: HM[0],
     worst: HM[HM.length - 1]
   }
 }
 
-function checkIsFitnessSolution(solution, kpiTarget, kpiOfEmployeesTarget) {
+const POINT_MAX = 24
+
+function checkIsFitnessSolution(solution, kpiTarget) {
   const kpiAssignmentOfSolution = solution.kpiAssignment
   const kpiOfEmployees = solution.kpiOfEmployees
   
@@ -555,12 +552,23 @@ function checkIsFitnessSolution(solution, kpiTarget, kpiOfEmployeesTarget) {
       return false
     }
   }
-  for (let employeeId in kpiOfEmployeesTarget) {
+  // for (let employeeId in kpiOfEmployeesTarget) {
+  //   for (let kpiType in KPI_TYPES) {
+  //     if (kpiOfEmployees[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
+  //       return false
+  //     }
+  //   }
+  // }
+  let count = 0
+  for (let employeeId in kpiOfEmployees) {
     for (let kpiType in KPI_TYPES) {
-      if (kpiOfEmployees[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
-        return false
+      if (kpiOfEmployees[employeeId][kpiType] ) {
+        count++
       }
     }
+  }
+  if (count < POINT_MAX) {
+    return false
   }
 
   return true
@@ -777,7 +785,7 @@ function reScheduleTasks(assignment, assets) {
   })
 }
 
-function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, tasks, employees, lastKPIs) {
+function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, tasks, employees, lastKPIs) {
   
   // STep 1: init HM
   let HM = [], bestFitnessSolutions = []
@@ -790,10 +798,10 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
   
   // STEP 2: 
   for (let i = 0; i < maxIter; i++) {
-    const bestSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget).best
-    const worstSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget).worst
+    const bestSolution = findBestAndWorstHarmonySolution(HM, kpiTarget).best
+    const worstSolution = findBestAndWorstHarmonySolution(HM, kpiTarget).worst
 
-    let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
+    let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget) 
 
     if (isFitnessSolution) {
       if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
@@ -863,7 +871,7 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
     }
 
     // STEP 3
-    const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, kpiOfEmployeesTarget) 
+    const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget) 
     if (checkIsImproviseSolution) {
       updateHarmonyMemory(HM, improviseSolution)
     }
@@ -889,6 +897,24 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
   }
 }
 
+function getKpiInTasks(tasks, kpiTarget) {
+  const kpiInTasks = {}
+
+  tasks.forEach((task) => {
+    const { id, kpiInTask } = task
+    kpiInTasks[id] = {}
+    for (let key in KPI_TYPES) {
+      kpiInTasks[id][key] = 0
+    }
+
+    kpiInTask.forEach((item) => {
+      const { type, weight } = item
+      kpiInTasks[id][type] += weight * kpiTarget[type].value
+    })
+  })
+  return kpiInTasks
+}
+
 module.exports = {
   findEmployeesWithQualities,
   getAvailableEmployeesForTasks,
@@ -908,5 +934,6 @@ module.exports = {
   splitKPIOfTaskToEmployees,
   splitKPIToEmployees,
   getKpiOfEmployees,
-  newHarmonySearch
+  newHarmonySearch,
+  getKpiInTasks
 }

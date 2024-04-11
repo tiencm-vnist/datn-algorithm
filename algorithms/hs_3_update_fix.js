@@ -5,7 +5,7 @@ const { employees } = require("../new_data/employee");
 const { lastKPIs } = require("../new_data/kpi");
 const { tasks } = require("../new_data/task");
 const ExcelJS = require('exceljs');
-const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution } = require("./hs_helper");
+const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution, getKpiInTasks } = require("./hs_helper");
 // CHIẾN LƯỢC 1: BƯỚC 1: GÁN TÀI NGUYÊN VÀ KHUNG THỜI GIAN SAO CHO NHỎ NHẤT CÓ THỂ (THỰC HIỆN SONG SONG VÀ CHECK LUÔN 1 TÀI NGUYÊN CHỈ THỰC HIỆN 1 TASK TẠI 1 THỜI ĐIỂM)
 
 
@@ -107,18 +107,20 @@ async function main() {
 
   const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 4000
   const kpiTarget = {
-    'A': { value: 0.8, weight: 0.35 },
-    'B': { value: 0.8, weight: 0.35 },
-    'C': { value: 0.8, weight: 0.3 },
+    'A': { value: 0.82, weight: 0.35 },
+    'B': { value: 0.82, weight: 0.35 },
+    'C': { value: 0.82, weight: 0.3 },
   }
   const standardDeviationTarget = 0.1
+  const kpiInTasks = getKpiInTasks(job.tasks, kpiTarget)
+  console.log("kpiInTask: ", kpiInTasks)
 
   let fitnessSolutions = []
 
   
-  let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
-  for (let i = 1; i < 10; i++) {
-    const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
+  let testResult = newHarmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, job.tasks, employees, lastKPIs).bestFind
+  for (let i = 1; i < 100; i++) {
+    const result = newHarmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, job.tasks, employees, lastKPIs).bestFind
     // const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
     if (!compareSolution(testResult, result)) {
       testResult = result
@@ -129,9 +131,11 @@ async function main() {
     // }
   }
   reScheduleTasks(testResult.assignment, assets)
-  // console.log("solution: ", testResult.assignment)
+  console.log("solution: ", testResult.kpiAssignment)
   const kpiOfEmployee = getKpiOfEmployees(testResult.assignment, employees, lastKPIs)
-  await saveResult(kpiOfEmployee, fileName)
+  console.log("kpiOfEmployee: ", kpiOfEmployee)
+
+  // await saveResult(kpiOfEmployee, fileName)
   // if (fitnessSolutions.length) {
   //   fitnessSolutions.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB) ? -1 : 1)
   // }
@@ -142,7 +146,7 @@ async function main() {
 
 
 
-// main()
+main()
 
 function testResult() {
   // Sử dụng hàm để đọc dữ liệu từ file
@@ -211,7 +215,7 @@ function testResult() {
     });
 }
 
-testResult()
+// testResult()
 
 
 
