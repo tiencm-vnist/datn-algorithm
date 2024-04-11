@@ -154,7 +154,7 @@ function splitKPIOfTaskToEmployees(task, kpiTarget) {
   }
   // const total 
   const meanCapacityOfTask = totalMeanOfTask / totalQualityRequire
-  console.log("mean: ", meanCapacityOfTask, "task: ", task.id)
+  // console.log("mean: ", meanCapacityOfTask, "task: ", task.id)
   
   let totalRatio = 0
   // let availableAssigneeFilter = availableAssignee.filter((employee) => getCapacityPointOfEmployeeInTask(requireAssign, employee) >= meanCapacityOfTask)
@@ -166,7 +166,7 @@ function splitKPIOfTaskToEmployees(task, kpiTarget) {
     }
     // kpiOfEmployee[employee.id]['ratio'] = getCapacityPointOfEmployeeInTask(requireAssign, employee) / meanCapacityOfTask
     const capacityOfEmployeeInTask = getCapacityPointOfEmployeeInTask(requireAssign, employee)
-    console.log('capacity Emp: ', capacityOfEmployeeInTask)
+    // console.log('capacity Emp: ', capacityOfEmployeeInTask)
     kpiOfEmployee[employee.id]['ratio'] = capacityOfEmployeeInTask
     totalRatio +=  kpiOfEmployee[employee.id]['ratio']
   })
@@ -191,6 +191,7 @@ function splitKPIToEmployees(tasks, employees, kpiTarget) {
     for (let key in KPI_TYPES) {
       kpiOfEmployees[employee.id][key] = 0
     }
+    kpiOfEmployees[employee.id]['total'] = 0
   })
 
   tasks.forEach((task) => {
@@ -199,6 +200,12 @@ function splitKPIToEmployees(tasks, employees, kpiTarget) {
       for (let key in KPI_TYPES) {
         kpiOfEmployees[employeeId][key] += kpiSplitInTask[employeeId][key]
       }
+    }
+  })
+  employees.forEach((employee) => {
+    const { id } = employee
+    for (let key in kpiTarget) {
+      kpiOfEmployees[id]['total'] += kpiTarget[key].weight * kpiOfEmployees[id][key]
     }
   })
   // console.log("kpiOf: ", kpiOfEmployees)
@@ -340,6 +347,7 @@ function getKpiOfEmployees(assignment, employees, lastKPIs) {
     for (let key in KPI_TYPES) {
       kpiOfEmployee[employees[i].id][key] = 0
     }
+    kpiOfEmployee[employees[i].id]['total'] = 0
   }
   for(let i = 0; i < assignment.length; i++) {
     const { task, assignee } = assignment[i]
@@ -358,6 +366,7 @@ function getKpiOfEmployees(assignment, employees, lastKPIs) {
     kpiInTask.forEach((kpiItem) => {
       const { type, weight } = kpiItem
       kpiOfEmployee[id][type] += kpiValue * weight
+      kpiOfEmployee[id]['total'] += kpiValue * weight * KPI_TYPES[type].weight
     })
   }
 
@@ -447,6 +456,9 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
 
   // get total cost
   totalCost = getTotalCost(randomAssignment)
+  
+  // getKPI of Employees 
+  const kpiOfEmployees = getKpiOfEmployees(randomAssignment, employees, lastKPIs)
 
   const randomHarmonyVector = {
     index,
@@ -455,16 +467,19 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, index) {
     falseAssigneeScore,
     totalCost,
     kpiAssignment,
-    standardDeviation
+    standardDeviation,
+    kpiOfEmployees
   }
   return randomHarmonyVector
 }
 
-function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) {
+function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) {
   const kpiAssignmentOfA = solutionA.kpiAssignment
   const kpiAssignmentOfB = solutionB.kpiAssignment
   const falseAssigneeScoreA = solutionA.falseAssigneeScore
   const falseAssigneeScoreB = solutionB.falseAssigneeScore
+  const kpiOfEmployeesA = solutionA.kpiOfEmployees
+  const kpiOfEmployeesB = solutionB.kpiOfEmployees
  
   let totalKpiOfA = 0, totalKpiOfB = 0, totalKpiMissA = 0, totalKpiMissB = 0
   if (falseAssigneeScoreA === falseAssigneeScoreB) {
@@ -492,16 +507,30 @@ function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarge
       // console.log("point B: ", pointB)
       if (pointA === pointB) {
         if (pointA === count) {
-          // Nếu cả 2 đều đạt KPI target => xem xét độ lệch chuẩn
-          const standardDeviationRatioOfA = solutionA.standardDeviation
-          const standardDeviationRatioOfB = solutionB.standardDeviation
-          if (standardDeviationRatioOfA <= standardDeviationTarget && standardDeviationRatioOfB <= standardDeviationTarget) {
-            // Nếu đạt độ lệch chuẩn => xem xét về tổng KPI hoặc phí
-            // TRƯỚC MẶT SO TỔNG KPI
-            return totalKpiOfA >= totalKpiOfB
-          } else {
-            return standardDeviationRatioOfA <= standardDeviationRatioOfB
+          // Nếu cả 2 đều đạt KPI target => xem xét đạt KPI target của từng đứa
+          let employeeTargetPointA = 0, employeeTargetPointB = 0
+          for (let employeeId in kpiOfEmployeesTarget) {
+            // let flagA = true, flagB = true
+            // for (let kpiType in KPI_TYPES) {
+            //   if (kpiOfEmployeesA[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
+            //     flagA = false
+            //   }
+            //   if (kpiOfEmployeesB[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
+            //     flagB = false
+            //   }
+            // }
+            // if (flagA)
+            //   employeeTargetPointA++
+            // if (flagB)
+            //   employeeTargetPointB++
+            if (kpiOfEmployeesA[employeeId]['total'] >= kpiOfEmployeesTarget[employeeId]['total']) {
+              employeeTargetPointA++;
+            }
+            if (kpiOfEmployeesB[employeeId]['total'] >= kpiOfEmployeesTarget[employeeId]['total']) {
+              employeeTargetPointB++;
+            }
           }
+          return employeeTargetPointA >= employeeTargetPointB
         } else if (pointA) {
           // Nếu = point mà có tiêu chí không đạt xem xét về độ thọt KPI tương ứng của bọn không đủ
           return totalKpiMissA < totalKpiMissB
@@ -524,23 +553,31 @@ function compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarge
   }
 }
 
-function findBestAndWorstHarmonySolution(HM, kpiTarget, standardDeviationTarget) {
-  HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) ? -1 : 1)
+function findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget) {
+  HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) ? -1 : 1)
   return {
     best: HM[0],
     worst: HM[HM.length - 1]
   }
 }
 
-function checkIsFitnessSolution(solution, kpiTarget, standardDeviationTarget) {
+function checkIsFitnessSolution(solution, kpiTarget, kpiOfEmployeesTarget) {
   const kpiAssignmentOfSolution = solution.kpiAssignment
-  const standardDeviationRatioOfSolution = solution.standardDeviation
+  const kpiOfEmployees = solution.kpiOfEmployees
   
-  if (standardDeviationRatioOfSolution > standardDeviationTarget) {
-    return false
-  }
   for (let key in kpiTarget) {
-    if (kpiAssignmentOfSolution[key].toFixed(2) < kpiTarget[key].value) {
+    if (kpiAssignmentOfSolution[key].toFixed(4) < kpiTarget[key].value) {
+      return false
+    }
+  }
+  for (let employeeId in kpiOfEmployeesTarget) {
+    // for (let kpiType in KPI_TYPES) {
+    //   if (kpiOfEmployees[employeeId][kpiType] < kpiOfEmployeesTarget[employeeId][kpiType]) {
+    //     return false
+    //   }
+    // }
+    // console.log(kpiOfEmployees[employeeId]['total'], kpiOfEmployeesTarget[employeeId]['total'])
+    if (kpiOfEmployees[employeeId]['total'] < kpiOfEmployeesTarget[employeeId]['total']) {
       return false
     }
   }
@@ -734,7 +771,7 @@ function reScheduleTasks(assignment, assets) {
         if (asset.id in assetAssignments && assetAssignments[asset.id].getTime() > task.startTime.getTime()) {
           assetConflict = true;
           // Nếu có xung đột với tài nguyên, cập nhật thời gian bắt đầu của task
-          task.startTime = assetAssignments[assetId];
+          task.startTime = assetAssignments[asset.id];
           console.log("vao day: ", task.startTime)
         }
       });
@@ -759,6 +796,118 @@ function reScheduleTasks(assignment, assets) {
   })
 }
 
+function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, tasks, employees, lastKPIs) {
+  
+  // STep 1: init HM
+  let HM = [], bestFitnessSolutions = []
+
+  for (let i = 0; i < hmSize; i++) {
+    let randomSolution = initRandomHarmonyVector(job.tasks, employees, lastKPIs, i + 1)
+    HM.push(randomSolution)
+  }
+  
+  
+  // STEP 2: 
+  for (let i = 0; i < maxIter; i++) {
+    const bestSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget).best
+    const worstSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget).worst
+
+    let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
+
+    if (isFitnessSolution) {
+      if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+        bestFitnessSolutions.push(bestSolution)
+      }
+      // standardDeviationTargetReduce = standardDeviationTargetReduce * 0.99
+    } 
+    let improviseAssignment = []
+    let empAssigned = []
+    let falseAssigneeScore = 0
+    let falseAssetScore = 0
+
+    const bestSolutionAssignment = bestSolution.assignment
+
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i]
+      const { availableAssignee, assignee, assets } = task
+  
+      let randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
+
+      if (Math.random() < HMCR) {
+        randomAssignee = bestSolutionAssignment.find((item) => item.task.id === task.id).assignee
+        if (Math.random() < PAR || !isFitnessSolution) {
+          let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+          randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
+          randomAssignee = availableAssignee[randomAssigneeIndex]
+        }
+      }
+
+      // Do for assets: TODO
+
+      if (!empAssigned.includes(randomAssignee.id)) {
+        empAssigned.push(randomAssignee.id)
+      }
+      
+      improviseAssignment.push({
+        task,
+        assignee: randomAssignee,
+        assets: assets
+      })
+    }
+
+    // total False
+    falseAssigneeScore = employees.length - empAssigned.length
+    // total False assets: TODO
+
+    // get total KPI
+    const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs)
+
+    // get total Cost
+    const totalCost = getTotalCost(improviseAssignment)
+
+    // get standard ratio
+    // const kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).kpiOfEmployee
+    const standardDeviation = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).standardDeviation
+
+    const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs)
+
+    const improviseSolution = {
+      assignment: improviseAssignment,
+      falseAssetScore,
+      falseAssigneeScore,
+      totalCost,
+      kpiAssignment,
+      standardDeviation,
+      kpiOfEmployees
+    }
+
+    // STEP 3
+    const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, kpiOfEmployeesTarget) 
+    if (checkIsImproviseSolution) {
+      updateHarmonyMemory(HM, improviseSolution)
+    }
+  }
+
+  // // Test sắp xếp
+  // HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) === true ? -1 : 1)
+
+  // for (let i = 0; i < hmSize; i++) {
+  //   console.log("HM after sort: ", i, " : ", "index: ", HM[i].index, ": ", "falseS: ", HM[i].falseAssigneeScore, "totalCost: ", HM[i].totalCost, ": ", HM[i].kpiAssignment)
+  //   if (HM[i].falseAssigneeScore === 0) {
+  //     console.log("check: ", getTotalKpi(HM[i].assignment, lastKPIs))
+  //   }
+  // }
+
+  // const testValue = compareSolution(HM[0], HM[1], kpiTarget, standardDeviationTarget)
+  // console.log("compare HM[0] and HM[1] after check: ", testValue)
+
+  // STEP final: 
+  return {
+    bestFind: HM[0],
+    bestFitnessSolutions
+  }
+}
+
 module.exports = {
   findEmployeesWithQualities,
   getAvailableEmployeesForTasks,
@@ -777,5 +926,6 @@ module.exports = {
   reScheduleTasks,
   splitKPIOfTaskToEmployees,
   splitKPIToEmployees,
-  getKpiOfEmployees
+  getKpiOfEmployees,
+  newHarmonySearch
 }
