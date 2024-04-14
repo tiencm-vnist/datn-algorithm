@@ -169,7 +169,7 @@ function testResult() {
 
 
       
-      const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 5000
+      const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 4000
       const kpiTarget = {
         'A': { value: 0.8, weight: 0.35 },
         'B': { value: 0.8, weight: 0.35 },
@@ -182,12 +182,12 @@ function testResult() {
       // for (let emplpoyeeId in kpiOfEmployeesTarget) {
         
       // }
-      kpiOfEmployeesTarget = data[randomIndex]
+      kpiOfEmployeesTarget = data[4]
 
 
   
       let testResult = newHarmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, job.tasks, employees, lastKPIs).bestFind
-      for (let i = 1; i < 40; i++) {
+      for (let i = 1; i < 30; i++) {
         const searchResult = newHarmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, job.tasks, employees, lastKPIs)
         const result = searchResult.bestFind
         const listFitness = searchResult.bestFitnessSolutions

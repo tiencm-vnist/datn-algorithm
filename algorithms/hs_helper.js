@@ -1,6 +1,5 @@
 const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS } = require("../consts/kpi.const");
 const { topologicalSort } = require("../helper");
-const { employees } = require("../new_data/employee");
 
 function findEmployeesWithQualities(employees, requiredQualities) {
   const employeesWithRequiredQualities = employees.filter(employee => {
@@ -114,14 +113,6 @@ function getAvailableTimeForAssetOfTask(task, assets) {
   }
 }
 
-// function getCapacityPoint(requireAssign, availableAssignee) {
-//   let point = 0, count = 0
-//   for (let key in requireAssign) {
-//     count++
-//     point += employeeQualities[key] 
-//   }
-// }
-
 function findMeanOfQuality(qualityKey, availableAssignee) {
   const values = availableAssignee.map(employee => employee.qualities[qualityKey]);
   const sum = values.reduce((acc, currentValue) => acc + currentValue, 0);
@@ -206,12 +197,6 @@ function splitKPIToEmployees(tasks, employees, kpiTarget) {
 }
 
 function markAssetsAsUsed(currentAssets, taskAssets, startTime, endTime) {
-  // console.log("task assets: ", taskAssets.map((item) => {
-  //   return {
-  //     id: item.id,
-  //     status: item.status
-  //   }
-  // }))
   let updateInUse = currentAssets.inUse
   let updateReadyToUse = currentAssets.readyToUse
   
@@ -281,56 +266,6 @@ function scheduleTasksWithAsset(job, assets) {
   }
 
   return sortedTasks;
-}
-
-function calculateStandardDeviation(numbers) {
-  // Bước 1: Tính trung bình của dãy số
-  const mean = Object.values(numbers).reduce((acc, val) => acc + val, 0) / Object.keys(numbers).length;
-
-  // Bước 2: Tính tổng bình phương của độ lệch so với trung bình
-  const squaredDifferences = Object.values(numbers).map(val => Math.pow(val - mean, 2)).reduce((acc, val) => acc + val, 0);
-
-  // Bước 3: Tính độ lệch chuẩn
-  const standardDeviation = Math.sqrt(squaredDifferences / Object.keys(numbers).length);
-
-  return standardDeviation / mean;
-}
-
-function getStandardDeviationOfKpi_SalaryRatio(assignment, employees, lastKPIs) {
-  const kpiOfEmployee = {}
-  for(let i = 0; i < employees.length; i++) {
-    kpiOfEmployee[employees[i].id] = 0
-  }
-  for(let i = 0; i < assignment.length; i++) {
-    const { task, assignee } = assignment[i]
-    const { kpiInTask } = task
-    const { id } = assignee
-    const kpiOfAssignee = lastKPIs.find((item) => item.id === id) 
-    // console.log("kpiOfAssignee: ")
-    let kpiValue = kpiOfAssignee.kpiInTask[task.id]
-    if (kpiValue === KPI_NOT_WORK) {
-      kpiValue = 0
-      // Lấy kpi tồi nhất của thằng nào đã làm task này rồi: TODO
-      let listKPIInThisTask = lastKPIs.filter((item) => item.kpiInTask[task.id] !== -1).map((item) => item.kpiInTask[task.id]).sort((a, b) => a - b)
-      kpiValue = listKPIInThisTask[0]
-    } 
-    
-    kpiInTask.forEach((kpiItem) => {
-      const { type, weight } = kpiItem
-      kpiOfEmployee[id] += kpiValue * weight * KPI_TYPES[type].weight
-    })
-  }
-
-  for (let key in kpiOfEmployee) {
-    const id = Number(key)
-    const employee = employees.find((item) => item.id === id)
-    kpiOfEmployee[key] = kpiOfEmployee[key] / employee.costPerHour 
-  }
-
-  const standardDeviation = calculateStandardDeviation(kpiOfEmployee)
-
-  return { kpiOfEmployee, standardDeviation } 
-
 }
 
 function getKpiOfEmployees(assignment, employees, lastKPIs) {
@@ -403,6 +338,7 @@ function getTotalCost(assignment) {
     const { estimateTime } = task
     const { costPerHour } = assignee
     const timeForTask = estimateTime * DAY_WORK_HOURS
+    // TODO: Tính cả cost theo KPI đạt được, ví dụ hiệu suất là 0.9 thì lấy cost / 0.9
     totalCost += timeForTask * costPerHour
 
     for (let j = 0; j < assets?.length; j++) {
@@ -416,7 +352,7 @@ function getTotalCost(assignment) {
 function initRandomHarmonyVector(tasks, employees, lastKPIs, kpiOfEmployeesTarget, index = 0) {
   const randomAssignment = []
   const empAssigned = []
-  let falseAssigneeScore = 0, falseAssetScore = 0, kpiAssignment = {}, kpiOfEmployee = {}, standardDeviation = 0, totalCost = 0
+  let falseAssigneeScore = 0, falseAssetScore = 0, kpiAssignment = {}, totalCost = 0
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i]
     const { availableAssignee } = task
@@ -440,11 +376,6 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, kpiOfEmployeesTarge
 
   // get total KPI
   kpiAssignment = getTotalKpi(randomAssignment, lastKPIs)
-
-  // get kpi standard ratio 
-  kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).kpiOfEmployee
-  standardDeviation = getStandardDeviationOfKpi_SalaryRatio(randomAssignment, employees, lastKPIs).standardDeviation
-
   // get total cost
   totalCost = getTotalCost(randomAssignment)
   
@@ -457,11 +388,9 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, kpiOfEmployeesTarge
   const randomHarmonyVector = {
     index,
     assignment: randomAssignment,
-    falseAssetScore,
     falseAssigneeScore,
     totalCost,
     kpiAssignment,
-    standardDeviation,
     kpiOfEmployees,
     distanceWithKPIEmployeesTarget
   }
@@ -506,9 +435,6 @@ function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) 
           // return 
           const distanceA = solutionA.distanceWithKPIEmployeesTarget
           const distanceB = solutionB.distanceWithKPIEmployeesTarget
-
-          // console.log("distanceA: ", distanceA)
-          // console.log("distanceB: ", distanceB)
 
           return distanceA <= distanceB
 
@@ -565,7 +491,7 @@ function checkIsFitnessSolution(solution, kpiTarget, kpiOfEmployeesTarget) {
   const kpiOfEmployees = solution.kpiOfEmployees
   
   for (let key in kpiTarget) {
-    if (kpiAssignmentOfSolution[key].toFixed(4) < kpiTarget[key].value) {
+    if (kpiAssignmentOfSolution[key] < kpiTarget[key].value) {
       return false
     }
   }
@@ -589,12 +515,10 @@ function updateHarmonyMemory(HM, improviseSolution) {
 
 function isHaveSameSolution(bestFitnessSolutions, currentBestSolution, ratio = 0.0001) {
   const currentKpiAssignment = currentBestSolution.kpiAssignment
-  const currentStandardDeviation = currentBestSolution.standardDeviation
   const currentTotalCost = currentBestSolution.totalCost
 
   const isHaveSameSolution = bestFitnessSolutions.find((fitnessSolution) => {
     const fitnessKpiAssignment = fitnessSolution.kpiAssignment
-    const fitnessStandarDeviation = fitnessSolution.standardDeviation
     const fitnessTotalCost = fitnessSolution.totalCost
     for (let key in fitnessKpiAssignment) {
       const diffValue = Math.abs(currentKpiAssignment[currentKpiAssignment] - fitnessKpiAssignment[key])
@@ -602,8 +526,7 @@ function isHaveSameSolution(bestFitnessSolutions, currentBestSolution, ratio = 0
         return false
     }
     const diffCost = Math.abs(fitnessTotalCost - currentTotalCost)
-    const diffStandard = Math.abs(currentStandardDeviation - fitnessStandarDeviation)
-    if (diffCost > ratio || diffStandard > ratio)
+    if (diffCost > ratio)
       return false
 
     return true
@@ -691,7 +614,6 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
 
   for (let i = 0; i < hmSize; i++) {
     let randomSolution = initRandomHarmonyVector(job.tasks, employees, lastKPIs, kpiOfEmployeesTarget, i + 1)
-    // console.log("test distance vào đây: ", randomSolution.distanceWithKPIEmployeesTarget)
     HM.push(randomSolution)
   }
   
@@ -707,12 +629,10 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
       if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
         bestFitnessSolutions.push(bestSolution)
       }
-      // standardDeviationTargetReduce = standardDeviationTargetReduce * 0.99
     } 
     let improviseAssignment = []
     let empAssigned = []
     let falseAssigneeScore = 0
-    let falseAssetScore = 0
 
     const bestSolutionAssignment = bestSolution.assignment
 
@@ -754,10 +674,6 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
     // get total Cost
     const totalCost = getTotalCost(improviseAssignment)
 
-    // get standard ratio
-    // const kpiOfEmployee = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).kpiOfEmployee
-    const standardDeviation = getStandardDeviationOfKpi_SalaryRatio(improviseAssignment, employees, lastKPIs).standardDeviation
-
     const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs)
 
     // get euclid distance kpi target
@@ -766,11 +682,9 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
 
     const improviseSolution = {
       assignment: improviseAssignment,
-      falseAssetScore,
       falseAssigneeScore,
       totalCost,
       kpiAssignment,
-      standardDeviation,
       kpiOfEmployees,
       distanceWithKPIEmployeesTarget
     }
@@ -782,20 +696,6 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
     }
   }
 
-  // // Test sắp xếp
-  // HM.sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, standardDeviationTarget) === true ? -1 : 1)
-
-  // for (let i = 0; i < hmSize; i++) {
-  //   console.log("HM after sort: ", i, " : ", "index: ", HM[i].index, ": ", "falseS: ", HM[i].falseAssigneeScore, "totalCost: ", HM[i].totalCost, ": ", HM[i].kpiAssignment)
-  //   if (HM[i].falseAssigneeScore === 0) {
-  //     console.log("check: ", getTotalKpi(HM[i].assignment, lastKPIs))
-  //   }
-  // }
-
-  // const testValue = compareSolution(HM[0], HM[1], kpiTarget, standardDeviationTarget)
-  // console.log("compare HM[0] and HM[1] after check: ", testValue)
-
-  // STEP final: 
   return {
     bestFind: HM[0],
     bestFitnessSolutions
@@ -805,8 +705,6 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
 module.exports = {
   findEmployeesWithQualities,
   getAvailableEmployeesForTasks,
-  calculateStandardDeviation,
-  getStandardDeviationOfKpi_SalaryRatio,
   getTotalKpi,
   getTotalCost,
   initRandomHarmonyVector,
@@ -815,7 +713,6 @@ module.exports = {
   checkIsFitnessSolution,
   updateHarmonyMemory,
   isHaveSameSolution,
-  // harmonySearch,
   scheduleTasksWithAsset,
   reScheduleTasks,
   splitKPIOfTaskToEmployees,
