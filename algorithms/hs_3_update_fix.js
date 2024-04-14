@@ -179,30 +179,16 @@ function testResult() {
 
       let fitnessSolutions = []
       kpiOfEmployeesTarget = splitKPIToEmployees(job.tasks, employees, kpiTarget)
-      // for (let emplpoyeeId in kpiOfEmployeesTarget) {
-        
-      // }
-      kpiOfEmployeesTarget = data[randomIndex]
 
+      // kpiOfEmployeesTarget = data[1]
 
-  
       let testResult = newHarmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, job.tasks, employees, lastKPIs).bestFind
-      for (let i = 1; i < 40; i++) {
+      for (let i = 1; i < 30; i++) {
         const searchResult = newHarmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, job.tasks, employees, lastKPIs)
         const result = searchResult.bestFind
         const listFitness = searchResult.bestFitnessSolutions
-        // if (listFitness?.length) {
-        //   console.log("vào đây")
-        // }
         const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
-        // if (checkIsFitnessSolutionResult) {
-        //   testResult = result
-        //   console.log("target: ", kpiOfEmployeesTarget)
-        //   console.log("result: ", testResult.kpiOfEmployees)
-        //   // console.log("assignment: ", testResult.assignment)
-        //   console.log("kpi: ", testResult.kpiAssignment)
-        //   break
-        // }
+      
         if (!compareSolution(testResult, result, kpiTarget, kpiOfEmployeesTarget)) {
           testResult = result
         }
@@ -210,20 +196,15 @@ function testResult() {
       reScheduleTasks(testResult.assignment, assets)
       console.log("result: ", testResult.kpiOfEmployees)
       console.log("target: ", kpiOfEmployeesTarget)
-      // console.log("assignment: ", testResult.assignment)
+      console.log("assignment: ", testResult.assignment)
       console.log("kpi: ", testResult.kpiAssignment)
       console.log("distance: ", testResult.distanceWithKPIEmployeesTarget)
       console.log("distance check: ", getDistanceOfKPIEmployeesTarget(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
       const checkIsFitnessSolutionResult = checkIsFitnessSolution(testResult, kpiTarget, kpiOfEmployeesTarget)
       if (checkIsFitnessSolutionResult) {
-        console.log("result: ", testResult.kpiOfEmployees)
-        console.log("target: ", kpiOfEmployeesTarget)
-        // console.log("assignment: ", testResult.assignment)
-        console.log("kpi: ", testResult.kpiAssignment)
-        console.log("distance: ", testResult.distanceWithKPIEmployeesTarget)
-        console.log("distance check: ", getDistanceOfKPIEmployeesTarget(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
+        console.log("fitness")
       } else {
-        console.log("")
+        console.log("none fitness")
       }
 
     })

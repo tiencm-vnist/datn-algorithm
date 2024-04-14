@@ -69,7 +69,7 @@ const assetAll = [
     usageLogs: [
       {
         startDate: new Date('2024-04-01T05:00:00.000Z'),
-        endDate: new Date('2024-05-12T05:00:00.000Z')
+        endDate: new Date('2024-05-01T05:00:00.000Z')
       }
     ]
   },
