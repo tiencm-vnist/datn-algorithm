@@ -12,6 +12,7 @@ const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compare
 // SAVE result to ./output/output.json files
 const fileName = './algorithms/output/kpi_employee.json'
 const fs = require('fs');
+const { kMeansWithEmployees, splitKPIToEmployeesByKMeans } = require("../helper/k-means");
 
 async function saveResult(newResult, fileName) {
   // Đọc dữ liệu từ file JSON
@@ -186,15 +187,21 @@ function testResult() {
       const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 102
 
       const kpiTarget = {
-        'A': { value: 0.8, weight: 0.35 },
-        'B': { value: 0.8, weight: 0.35 },
-        'C': { value: 0.8, weight: 0.3 },
+        'A': { value: 0.9, weight: 0.35 },
+        'B': { value: 0.9, weight: 0.35 },
+        'C': { value: 0.9, weight: 0.3 },
       }
+
+      const clusters = kMeansWithEmployees(employees, 4) 
+
       const standardDeviationTarget = 0.1
 
       let fitnessSolutions = []
-      const kpiOfEmployeesSplit = splitKPIToEmployees(job.tasks, employees, kpiTarget)
-      // console.log("kpiOfEmployeesSplit: ", kpiOfEmployeesSplit)
+      kpiOfEmployeesTarget = splitKPIToEmployees(job.tasks, employees, kpiTarget)
+      // kpiOfEmployeesTarget = data[4]
+      kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget)
+      console.log("kpiOfEmployeesSplit: ", kpiOfEmployeesTarget)
+
 
   
       let testResult = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
@@ -245,7 +252,7 @@ function testResult() {
     });
 }
 
-testResult()
+// testResult()
 
 
 
@@ -268,6 +275,8 @@ async function fillDataToExcel() {
   // console.log("job.tasks: ", job.tasks)
   // console.log("assets: ", assets.inUse[0].usageLogs)
   job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+  const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 102
+  const clusters = kMeansWithEmployees(employees, 4) 
 
   const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 10000
   const kpiTarget = {
@@ -275,44 +284,78 @@ async function fillDataToExcel() {
     'B': { value: 0.8, weight: 0.35 },
     'C': { value: 0.8, weight: 0.3 },
   }
-  const standardDeviationTarget = 0.1
 
-
-  for (let j = 0; j < 10; j++) {
+  let count = 0;
+  do {
+    // const kpiOfEmployeesTarget = splitKPIToEmployees(job.tasks, employees, kpiTarget)
+    const kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget)
+    console.log("kpi Of Employees Target: ", kpiOfEmployeesTarget)
+    worksheet.addRow(['ID_KPI_Target', 'Target A', 'Target B', 'Target C'])
+    worksheet.addRow([count + 1, kpiTarget['A'].value, kpiTarget['B'].value, kpiTarget['C'].value])
     // Add headers
-    worksheet.addRow(['Task ID', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Standard Ratio', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'Total KPI A of Assignee with All Tasks', 'Toal KPI B of Assignee with All Tasks', 'Total KPI C of Assignee with All Tasks']);
-    // add vào đây 
-    let testResult = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
-    for (let i = 1; i < 8; i++) {
-      const result = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFind
-      // const bestFitnessSolutions = harmonySearch(HM_SIZE, MAX_TER, HMCR, PAR, bw, kpiTarget, standardDeviationTarget, job.tasks, employees, lastKPIs).bestFitnessSolutions
-      if (!compareSolution(testResult, result)) {
-        testResult = result
+    worksheet.addRow(['ID', 'Task ID', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Distance Of KPI', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'KPI A when splits', 'KPI A of Assignee with All Tasks', 'KPI B when splits', 'Total KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks']);
+    for (let j = 0; j < 5; j++) {
+      // add vào đây 
+      let testResult = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+      for (let i = 1; i < 40; i++) {
+        const result = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+        // const result = searchResult.bestFind
+        // const listFitness = searchResult.bestFitnessSolutions
+        // if (listFitness?.length) {
+        //   console.log("vào đây")
+        // }
+        const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
+        if (checkIsFitnessSolutionResult) {
+          testResult = result
+          // console.log("target: ", kpiOfEmployeesTarget)
+          // console.log("result: ", testResult.kpiOfEmployees)
+          // // console.log("assignment: ", testResult.assignment)
+          // console.log("kpi: ", testResult.kpiAssignment)
+          break
+        }
+        if (!compareSolution(testResult, result, kpiTarget, kpiOfEmployeesTarget)) {
+          testResult = result
+        }
       }
+      reScheduleTasks(testResult.assignment, assets)
+      const kpiAssignemt = testResult.kpiAssignment
+      const kpiOfEmployee = getKpiOfEmployees(testResult.assignment, employees, lastKPIs)
+      for (let i = 0; i < testResult.assignment.length; i++) {
+        const { task, assignee, assets } = testResult.assignment[i]
+        // console.log(task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.standardDeviation, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployee[assignee.id]['A'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployee[assignee.id]['C'])
+        // worksheet.addRow(['Task ID', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Distance Of KPI', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'KPI A when splits', 'KPI A of Assignee with All Tasks', 'KPI B when splits', 'Total KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks']);
+        worksheet.addRow([j + 1, task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.distanceWithKPIEmployeesTarget, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployeesTarget[assignee.id]['A'], kpiOfEmployee[assignee.id]['A'], kpiOfEmployeesTarget[assignee.id]['B'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployeesTarget[assignee.id]['C'], kpiOfEmployee[assignee.id]['C']]);
+      }    
+  
+      employeesheet.addRow(['Target A', 'Target B', 'Target C'])
+      employeesheet.addRow([kpiTarget['A'].value, kpiTarget['B'].value, kpiTarget['C'].value])
+      employeesheet.addRow(['ID', 'Employee ID', 'KPI A when splits', 'Total KPI A of Assignee with All Tasks', 'KPI B when splits', 'Toal KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks', '', 'Total KPI A', 'Total KPI B', 'TotalKPI C', 'Distance']);
+      for (let i = 0; i < employees.length; i++) {
+        // employeesheet.addRow(['Employee ID', 'KPI A when splits', 'Total KPI A of Assignee with All Tasks', 'KPI B when splits', 'Toal KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks', '', 'Total KPI A', 'Total KPI B', 'TotalKPI C', 'Distance']);
+        employeesheet.addRow([i + 1, employees[i].id, kpiOfEmployeesTarget[employees[i].id]['A'], kpiOfEmployee[employees[i].id]['A'], kpiOfEmployeesTarget[employees[i].id]['B'], kpiOfEmployee[employees[i].id]['B'], kpiOfEmployeesTarget[employees[i].id]['C'], kpiOfEmployee[employees[i].id]['C'], '', kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'], testResult.distanceWithKPIEmployeesTarget]);
+      }
+      console.log("j = ", j + 1)
+      
     }
-    reScheduleTasks(testResult.assignment, assets)
-    const kpiAssignemt = testResult.kpiAssignment
-    const kpiOfEmployee = getKpiOfEmployees(testResult.assignment, employees, lastKPIs)
-    for (let i = 0; i < testResult.assignment.length; i++) {
-      const { task, assignee, assets } = testResult.assignment[i]
-      // console.log(task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.standardDeviation, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployee[assignee.id]['A'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployee[assignee.id]['C'])
-      worksheet.addRow([task.id, assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.standardDeviation, kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'],  ' ', assignee.id, kpiOfEmployee[assignee.id]['A'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployee[assignee.id]['C']]);
+    // Tang KPI chi tieu
+    const rand = count % 3;
+    if (rand === 1) {
+      kpiTarget['A'].value += 0.01
+    } else if (rand === 2) {
+      kpiTarget['B'].value += 0.01
+    } else {
+      kpiTarget['C'].value += 0.01
     }
-    
-
-    employeesheet.addRow(['Employee ID', 'Total KPI A of Assignee with All Tasks', 'Toal KPI B of Assignee with All Tasks', 'Total KPI C of Assignee with All Tasks', '', 'Total KPI A', 'Total KPI B', 'TotalKPI C', 'Standard']);
-    for (let i = 0; i < employees.length; i++) {
-      employeesheet.addRow([employees[i].id, kpiOfEmployee[employees[i].id]['A'], kpiOfEmployee[employees[i].id]['B'], kpiOfEmployee[employees[i].id]['C'], '', kpiAssignemt['A'], kpiAssignemt['B'], kpiAssignemt['C'], testResult.standardDeviation]);
-    }
-    console.log("j = ", j + 1)
+    count++;
   }
+  while (kpiTarget['A'].value <= 0.83 && kpiTarget['B'].value <= 0.83 && kpiTarget['C'].value <= 0.83) 
   
 
   // Save workbook to a file
-  const filePath = 'task_kpis.xlsx';
+  const filePath = 'task_kpis_k_mean_min.xlsx';
   await workbook.xlsx.writeFile(filePath);
   console.log(`Excel file created at: ${filePath}`);
 }
 
 // Example usage
-// fillDataToExcel();
+fillDataToExcel();
