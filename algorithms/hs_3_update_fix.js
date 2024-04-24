@@ -5,14 +5,14 @@ const { employees } = require("../new_data/employee");
 const { lastKPIs } = require("../new_data/kpi");
 const { tasks } = require("../new_data/task");
 const ExcelJS = require('exceljs');
-const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution, splitKPIToEmployees, DLHS, getDistanceOfKPIEmployeesTarget } = require("./hs_helper");
+const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution, splitKPIToEmployees, DLHS, getDistanceOfKPIEmployeesTarget, getDistanceOfKPIEmployeesTarget_2 } = require("./hs_helper");
 // CHIẾN LƯỢC 1: BƯỚC 1: GÁN TÀI NGUYÊN VÀ KHUNG THỜI GIAN SAO CHO NHỎ NHẤT CÓ THỂ (THỰC HIỆN SONG SONG VÀ CHECK LUÔN 1 TÀI NGUYÊN CHỈ THỰC HIỆN 1 TASK TẠI 1 THỜI ĐIỂM)
 
 
 // SAVE result to ./output/output.json files
 const fileName = './algorithms/output/kpi_employee.json'
 const fs = require('fs');
-const { kMeansWithEmployees, splitKPIToEmployeesByKMeans } = require("../helper/k-means");
+const { kMeansWithEmployees, splitKPIToEmployeesByKMeans, findBestMiniKPIOfTasks, reSplitKPIOfEmployees } = require("../helper/k-means");
 
 async function saveResult(newResult, fileName) {
   // Đọc dữ liệu từ file JSON
@@ -187,26 +187,32 @@ function testResult() {
       const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 102
 
       const kpiTarget = {
-        'A': { value: 0.9, weight: 0.35 },
-        'B': { value: 0.9, weight: 0.35 },
-        'C': { value: 0.9, weight: 0.3 },
+        'A': { value: 0.8, weight: 0.35 },
+        'B': { value: 0.8, weight: 0.35 },
+        'C': { value: 0.8, weight: 0.3 },
       }
+
+      const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget)
+      
 
       const clusters = kMeansWithEmployees(employees, 4) 
 
-      const standardDeviationTarget = 0.1
+      // const standardDeviationTarget = 0.1
 
-      let fitnessSolutions = []
-      kpiOfEmployeesTarget = splitKPIToEmployees(job.tasks, employees, kpiTarget)
+      // let fitnessSolutions = []
+      // kpiOfEmployeesTarget = splitKPIToEmployees(job.tasks, employees, kpiTarget)
       // kpiOfEmployeesTarget = data[4]
       kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget)
+
+      console.log("minimunKpi: ", minimumKpi)
+      kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
       console.log("kpiOfEmployeesSplit: ", kpiOfEmployeesTarget)
 
 
   
       let testResult = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
-      // console.log("testReult ki: ", testResult.kpiOfEmployees)
-      // console.log("target: ", )
+      // // console.log("testReult ki: ", testResult.kpiOfEmployees)
+      // // console.log("target: ", )
       for (let i = 1; i < 40; i++) {
         const result = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
         // const result = searchResult.bestFind
@@ -234,17 +240,18 @@ function testResult() {
       console.log("kpi: ", testResult.kpiAssignment)
       console.log("distance: ", testResult.distanceWithKPIEmployeesTarget)
       console.log("distance check: ", getDistanceOfKPIEmployeesTarget(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
-      const checkIsFitnessSolutionResult = checkIsFitnessSolution(testResult, kpiTarget, kpiOfEmployeesTarget)
-      if (checkIsFitnessSolutionResult) {
-        console.log("result: ", testResult.kpiOfEmployees)
-        console.log("target: ", kpiOfEmployeesTarget)
-        // console.log("assignment: ", testResult.assignment)
-        console.log("kpi: ", testResult.kpiAssignment)
-        console.log("distance: ", testResult.distanceWithKPIEmployeesTarget)
-        console.log("distance check: ", getDistanceOfKPIEmployeesTarget(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
-      } else {
-        console.log("")
-      }
+      console.log("distance check 2: ", getDistanceOfKPIEmployeesTarget_2(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
+      // const checkIsFitnessSolutionResult = checkIsFitnessSolution(testResult, kpiTarget, kpiOfEmployeesTarget)
+      // if (checkIsFitnessSolutionResult) {
+      //   console.log("result: ", testResult.kpiOfEmployees)
+      //   console.log("target: ", kpiOfEmployeesTarget)
+      //   // console.log("assignment: ", testResult.assignment)
+      //   console.log("kpi: ", testResult.kpiAssignment)
+      //   console.log("distance: ", testResult.distanceWithKPIEmployeesTarget)
+      //   console.log("distance check: ", getDistanceOfKPIEmployeesTarget(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
+      // } else {
+      //   console.log("")
+      // }
 
     })
     .catch((error) => {
@@ -252,7 +259,7 @@ function testResult() {
     });
 }
 
-// testResult()
+testResult()
 
 
 
@@ -358,4 +365,4 @@ async function fillDataToExcel() {
 }
 
 // Example usage
-fillDataToExcel();
+// fillDataToExcel();

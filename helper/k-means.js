@@ -313,8 +313,8 @@ function calculateCentroids(clusters) {
 
 function kMeansWithEmployees(employees, k) {
   let employeesAfterProcess = preprocessEmployees(employees)
-    // Initialize centroids randomly
-  let centroids = initializeCentroids_6(employeesAfterProcess, k)
+  // Initialize centroids randomly
+  let centroids = initializeCentroids_5(employeesAfterProcess, k)
 
   let prevClusters = [];
   let clusters = assignToCluster(employeesAfterProcess, centroids);
@@ -473,6 +473,87 @@ function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
   return kpiOfEmployee
 }
 
+function findBestMiniKPIOfTasks(tasks, kpiTarget) {
+  const minimumKpi = {}
+
+  for (let key in kpiTarget) {
+    minimumKpi[key] = Infinity
+  }
+
+  tasks.forEach((task) => {
+    const { kpiInTask } = task
+    kpiInTask.forEach(({ type, weight }) => {
+      if (minimumKpi[type] > weight) {
+        minimumKpi[type] = weight
+      }
+    })
+  })
+
+  for (let key in kpiTarget) {
+    const value = kpiTarget[key].value
+    minimumKpi[key] = minimumKpi[key] * value
+  }
+
+  return minimumKpi
+
+}
+
+function reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesBefore) {
+  const kpiOfEmployees = { ...kpiOfEmployeesBefore }
+  const isCanSplitKpi = {}
+  const totalToSplit = {}
+  for (let key in minimumKpi) {
+    totalToSplit[key] = {}
+    totalToSplit[key]['COUNT'] = 0
+    totalToSplit[key]['TOTAL'] = 0
+  }
+  for (let employeeId in kpiOfEmployees) {
+    isCanSplitKpi[employeeId] = {}
+    isCanSplitKpi[employeeId]['NOT_FLAG'] = true
+    const kpiOfEmployee = kpiOfEmployees[employeeId]
+
+    for (let kpiType in kpiOfEmployee) {
+      if (kpiOfEmployee[kpiType] * 2 >= minimumKpi[kpiType]) {
+        // Nếu có 1 thằng KPI là có thể gán task
+        isCanSplitKpi[employeeId]['NOT_FLAG'] = false
+      }
+    }
+    for (let kpiType in kpiOfEmployee) {
+      isCanSplitKpi[employeeId][kpiType] = 0
+      if (!isCanSplitKpi[employeeId]['NOT_FLAG']) {
+        if (kpiOfEmployee[kpiType] * 2 < minimumKpi[kpiType]) {
+          isCanSplitKpi[employeeId][kpiType] = 1
+          totalToSplit[kpiType]['TOTAL'] += kpiOfEmployee[kpiType]
+        } else {
+          totalToSplit[kpiType]['COUNT'] += 1
+        }
+      } else {
+        totalToSplit[kpiType]['COUNT'] += 1
+      }
+    }
+  }
+
+  for (let kpiType in totalToSplit) {
+    totalToSplit[kpiType]['VALUE'] = 0
+    if (totalToSplit[kpiType]['COUNT']) {
+      totalToSplit[kpiType]['VALUE'] = totalToSplit[kpiType]['TOTAL'] / totalToSplit[kpiType]['COUNT']
+    } 
+  }
+
+  for (let employeeId in kpiOfEmployees) {
+    const kpiOfEmployee = kpiOfEmployees[employeeId]
+    
+    for (let kpiType in kpiOfEmployee) {
+      if (isCanSplitKpi[employeeId][kpiType]) {
+        kpiOfEmployee[kpiType] = 0
+      } else {
+        kpiOfEmployee[kpiType] += totalToSplit[kpiType]['VALUE']
+      }
+    }
+  }
+  return kpiOfEmployees
+}
+
 function splitKPIToEmployeesByKMeans(tasks, clusters, employees, kpiTarget) {
   // Calculate cluster scores
   const clusterScores = calculateClusterScores(clusters);
@@ -518,7 +599,26 @@ function splitKPIToEmployeesByKMeans(tasks, clusters, employees, kpiTarget) {
 // console.log("kpiOfEmployees_1: ", kpiOfEmployees_1)
 // console.log("kpiOfEmployees_2: ", kpiOfEmployees_2)
 
+
+function calculateEuclidWithSomeProperties(qualities1, qualities2) {
+
+}
+
+function getClusterFromTask(task, employees, k) {
+
+}
+
+function preKMeanWithTask(task, employees, k) {
+
+}
+
+function splitKPIOfTaskToEmployeesWithPreKMean(employees, tasks) {
+
+}
+
 module.exports = {
   kMeansWithEmployees,
-  splitKPIToEmployeesByKMeans
+  splitKPIToEmployeesByKMeans,
+  findBestMiniKPIOfTasks,
+  reSplitKPIOfEmployees
 }

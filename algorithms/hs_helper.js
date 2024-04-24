@@ -617,6 +617,36 @@ function getDistanceOfKPIEmployeesTarget(kpiOfEmployeesSolution, kpiOfEmployeesT
   return distance
 }
 
+function getDistanceOfKPIEmployeesTarget_2(kpiOfEmployeesSolution, kpiOfEmployeesTarget) {
+  let sum = 0, sumPositive = 0, sumNegative = 0
+  let edge1 = 0, edge2 = 0
+
+  for (let employeeId in kpiOfEmployeesTarget) {
+    for (let kpiType in KPI_TYPES) {
+      const detalValue = KPI_TYPES[kpiType].weight * (kpiOfEmployeesSolution[employeeId][kpiType] - kpiOfEmployeesTarget[employeeId][kpiType])
+      sum += detalValue * detalValue
+      edge1Value = KPI_TYPES[kpiType].weight * kpiOfEmployeesSolution[employeeId][kpiType]
+      edge2Value = KPI_TYPES[kpiType].weight * kpiOfEmployeesTarget[employeeId][kpiType]
+
+      edge1 += edge1Value * edge1Value
+      edge2 += edge2Value * edge2Value
+      if (detalValue > 0) {
+        sumPositive += detalValue * detalValue
+      } else {
+        sumNegative += detalValue * detalValue
+      }
+    }
+  }
+
+  const distance = Math.sqrt(sum) - Math.sqrt(sumPositive) + Math.sqrt(sumNegative)
+  // return distance > 0 ? distance : 0, Math.sqrt(edge1), Math.sqrt(edge2)
+  return {
+    distance: distance > 0 ? distance : 0,
+    edge1: Math.sqrt(edge1),
+    edge2: Math.sqrt(edge2)
+  }
+}
+
 function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, tasks, employees, lastKPIs) {
   
   // STep 1: init HM
@@ -1182,5 +1212,6 @@ module.exports = {
   newHarmonySearch,
   fillDataToExcel,
   DLHS,
-  getDistanceOfKPIEmployeesTarget
+  getDistanceOfKPIEmployeesTarget,
+  getDistanceOfKPIEmployeesTarget_2
 }
