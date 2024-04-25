@@ -1,9 +1,9 @@
 const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS } = require("../consts/kpi.const");
 const { scheduleTasks, topologicalSort } = require("../helper");
-const { assets, assetAll } = require("../new_data/asset");
-const { employees } = require("../new_data/employee");
-const { lastKPIs } = require("../new_data/kpi");
-const { tasks } = require("../new_data/task");
+const { assets, assetAll } = require("../data/asset");
+const { employees } = require("../data/employee");
+const { lastKPIs } = require("../data/kpi");
+const { tasks } = require("../data/task");
 const ExcelJS = require('exceljs');
 const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution, splitKPIToEmployees, DLHS, getDistanceOfKPIEmployeesTarget, getDistanceOfKPIEmployeesTarget_2 } = require("./hs_helper");
 // CHIẾN LƯỢC 1: BƯỚC 1: GÁN TÀI NGUYÊN VÀ KHUNG THỜI GIAN SAO CHO NHỎ NHẤT CÓ THỂ (THỰC HIỆN SONG SONG VÀ CHECK LUÔN 1 TÀI NGUYÊN CHỈ THỰC HIỆN 1 TASK TẠI 1 THỜI ĐIỂM)
@@ -142,28 +142,17 @@ async function main() {
 
 }
 
-
-
-
 // main()
 
 function testResult() {
   // Sử dụng hàm để đọc dữ liệu từ file
   readDataFromFile(fileName)
     .then((data) => {
+
+      // TEST DATA FROM JSON FILE
       let randomIndex = Math.floor(Math.random() * data.length) % data.length
       randomIndex = 2
       let kpiOfEmployeesTarget = data[randomIndex]
-      // kpiOfEmployeesTarget = {
-      //   '1': { A: 0.18, B: 0.228571428571429, C: 0.15 },
-      //   '2': { A: 0.0685714285714286, B: 0.228571428571429, C: 0.133333333333333 },
-      //   '3': { A: 0.137142857142857, B: 0, C: 0.116666666666667 },
-      //   '4': { A: 0.12, B: 0, C: 0 },
-      //   '5': { A: 0, B: 0.128571428571429, C: 0.116666666666667 },
-      //   '6': { A: 0, B: 0.114285714285714, C: 0.3 },
-      //   '7': { A: 0.182857142857143, B: 0.114285714285714, C: 0 },
-      //   '8': { A: 0.114285714285714, B: 0, C: 0 },
-      // }
 
       // employees.forEach((employee) => {
       //   kpiOfEmployeesTarget[employee.id]['total'] = 0
@@ -172,6 +161,7 @@ function testResult() {
       //   }
       // })
       // console.log("kpiOfEmployee: ", kpiOfEmployeesTarget)
+
       const START_DATE = new Date()
       START_DATE.setFullYear(2024, 4, 1)
       START_DATE.setHours(0, 0, 0, 0)
@@ -183,7 +173,10 @@ function testResult() {
       job.tasks = scheduleTasksWithAsset(job, assets)
       job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
       
+      // PARAMS FOR HS
       const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 4000
+
+      // PARAMS FOR DHLS
       const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 102
 
       const kpiTarget = {
@@ -193,26 +186,13 @@ function testResult() {
       }
 
       const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget)
-      
-
       const clusters = kMeansWithEmployees(employees, 4) 
-
-      // const standardDeviationTarget = 0.1
-
-      // let fitnessSolutions = []
-      // kpiOfEmployeesTarget = splitKPIToEmployees(job.tasks, employees, kpiTarget)
-      // kpiOfEmployeesTarget = data[4]
       kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget)
-
-      console.log("minimunKpi: ", minimumKpi)
       kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
-      console.log("kpiOfEmployeesSplit: ", kpiOfEmployeesTarget)
 
 
   
       let testResult = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
-      // // console.log("testReult ki: ", testResult.kpiOfEmployees)
-      // // console.log("target: ", )
       for (let i = 1; i < 40; i++) {
         const result = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
         // const result = searchResult.bestFind
@@ -234,6 +214,8 @@ function testResult() {
         }
       }
       reScheduleTasks(testResult.assignment, assets)
+
+      // LOG result
       console.log("result: ", testResult.kpiOfEmployees)
       console.log("target: ", kpiOfEmployeesTarget)
       // console.log("assignment: ", testResult.assignment)

@@ -1,9 +1,9 @@
 const { topologicalSort } = require(".");
 const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, splitKPIToEmployees } = require("../algorithms/hs_helper");
 const { KPI_TYPES } = require("../consts/kpi.const");
-const { assets } = require("../new_data/asset");
-const { employees } = require("../new_data/employee");
-const { tasks } = require("../new_data/task");
+const { assets } = require("../data/asset");
+const { employees } = require("../data/employee");
+const { tasks } = require("../data/task");
 
 const START_DATE = new Date()
 START_DATE.setFullYear(2024, 4, 1)

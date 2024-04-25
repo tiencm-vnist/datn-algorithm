@@ -1,4 +1,4 @@
-const { assets } = require("../new_data/asset");
+const { assets } = require("../data/asset");
 
 function topologicalSort(tasks) {
   const result = [];
@@ -410,7 +410,6 @@ function scheduleTasksNotParalell(job) {
   return job.tasks;
 }
 
-// console.log("Helper OK")
 module.exports = {
   topologicalSort,
   initBestAssignment,
