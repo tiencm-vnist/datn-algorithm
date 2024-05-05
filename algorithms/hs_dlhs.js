@@ -403,7 +403,7 @@ async function soSanhThuatToan() {
   })
 
   // PARAMS FOR DHLS
-  const HMS = 60, BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 1000, R = 102
+  const HMS = 60, BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, R = 102
   const kpiTarget = {
     'A': { value: 0, weight: 0.35 },
     'B': { value: 0, weight: 0.35 },
