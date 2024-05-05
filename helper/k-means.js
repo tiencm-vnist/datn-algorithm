@@ -259,6 +259,7 @@ function calculateCentroids(clusters) {
   for (const cluster of clusters) {
     if (cluster.length === 0) {
       centroids.push(null);
+      console.log("vao day")
       continue;
     }
     const centroidAbs = {};
@@ -315,16 +316,18 @@ function kMeansWithEmployees(employees, k) {
   let employeesAfterProcess = preprocessEmployees(employees)
   // Initialize centroids randomly
   let centroids = initializeCentroids_5(employeesAfterProcess, k)
+  // console.log("centroids ban dau: ", centroids)
 
   let prevClusters = [];
   let clusters = assignToCluster(employeesAfterProcess, centroids);
+  // console.log("cluster: ", clusters)
 
   while (!clusters.every((cluster, i) => prevClusters[i] && cluster.length === prevClusters[i].length)) {
     prevClusters = clusters;
     centroids = calculateCentroids(clusters);
     clusters = assignToCluster(employeesAfterProcess, centroids);
   }
-  console.log("cluster: ", clusters.map(cluster => cluster.map((item) => item.id)))
+  // console.log("cluster: ", clusters.map(cluster => cluster.map((item) => item.id)))
   return clusters;
 }
 
@@ -393,7 +396,16 @@ function findMeanOfQuality(qualityKey, availableAssignee) {
 
 function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
   const kpiOfEmployee = {}
-  const { requireAssign, availableAssignee, kpiInTask, id } = task
+  let { requireAssign, availableAssignee, kpiInTask, id } = task
+  if (!kpiInTask) {
+    kpiInTask = []
+    for (let key in KPI_TYPES) {
+      kpiInTask.push({
+        type: key,
+        weight: 0
+      })
+    }
+  }
   // console.log("task: ", task)
   let totalMeanOfTask = 0
   let totalQualityRequire = 0
@@ -475,6 +487,9 @@ function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
 
 function findBestMiniKPIOfTasks(tasks, kpiTarget) {
   const minimumKpi = {}
+  if (!kpiTarget['A'].value) {
+    return minimumKpi
+  }
 
   for (let key in kpiTarget) {
     minimumKpi[key] = Infinity
@@ -502,7 +517,7 @@ function reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesBefore) {
   const kpiOfEmployees = { ...kpiOfEmployeesBefore }
   const isCanSplitKpi = {}
   const totalToSplit = {}
-  for (let key in minimumKpi) {
+  for (let key in KPI_TYPES) {
     totalToSplit[key] = {}
     totalToSplit[key]['COUNT'] = 0
     totalToSplit[key]['TOTAL'] = 0

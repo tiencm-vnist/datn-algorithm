@@ -1,13 +1,18 @@
 const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS } = require("../consts/kpi.const");
 const { scheduleTasks, topologicalSort } = require("../helper");
-const { assets, assetAll } = require("../data/asset");
-const { employees } = require("../data/employee");
-const { lastKPIs } = require("../data/kpi");
-const { tasks } = require("../data/task");
+// const { assets, assetAll } = require("../data/asset");
+// const { employees } = require("../data/employee");
+// const { lastKPIs } = require("../data/kpi");
+// const { tasks } = require("../data/task");
 const ExcelJS = require('exceljs');
-const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution, splitKPIToEmployees, DLHS, getDistanceOfKPIEmployeesTarget, getDistanceOfKPIEmployeesTarget_2 } = require("./hs_helper");
+const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution, splitKPIToEmployees, DLHS, getDistanceOfKPIEmployeesTarget, getDistanceOfKPIEmployeesTarget_2, getTimeForProject, getEmployeesCost } = require("./hs_helper");
 // CHIẾN LƯỢC 1: BƯỚC 1: GÁN TÀI NGUYÊN VÀ KHUNG THỜI GIAN SAO CHO NHỎ NHẤT CÓ THỂ (THỰC HIỆN SONG SONG VÀ CHECK LUÔN 1 TÀI NGUYÊN CHỈ THỰC HIỆN 1 TASK TẠI 1 THỜI ĐIỂM)
 
+const tasks = require('../data-benmark/get-data').tasks
+const employees = require('../data-benmark/get-data').employees
+
+console.log("task: ", tasks)
+console.log("emps: ", employees)
 
 // SAVE result to ./output/output.json files
 const fileName = './algorithms/output/kpi_employee.json'
@@ -174,16 +179,18 @@ function testResult() {
       job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
       
       // PARAMS FOR HS
-      const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 4000
+      const PAR = 0.4, HMCR = 0.95, HMS = 60, bw = 1, MAX_TER = 4000
 
       // PARAMS FOR DHLS
-      const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 102
+      const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, R = 102
 
-      const kpiTarget = {
-        'A': { value: 0.8, weight: 0.35 },
-        'B': { value: 0.8, weight: 0.35 },
-        'C': { value: 0.8, weight: 0.3 },
+      let kpiTarget = {
+        'A': { value: 0, weight: 0.35 },
+        'B': { value: 0, weight: 0.35 },
+        'C': { value: 0, weight: 0.3 },
       }
+
+      // kpiTarget = {}
 
       const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget)
       const clusters = kMeansWithEmployees(employees, 4) 
@@ -191,38 +198,42 @@ function testResult() {
       kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
 
 
-  
-      let testResult = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
-      for (let i = 1; i < 40; i++) {
-        const result = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
-        // const result = searchResult.bestFind
-        // const listFitness = searchResult.bestFitnessSolutions
-        // if (listFitness?.length) {
-        //   console.log("vào đây")
-        // }
-        const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
-        if (checkIsFitnessSolutionResult) {
-          testResult = result
-          console.log("target: ", kpiOfEmployeesTarget)
-          console.log("result: ", testResult.kpiOfEmployees)
-          // console.log("assignment: ", testResult.assignment)
-          console.log("kpi: ", testResult.kpiAssignment)
-          break
-        }
-        if (!compareSolution(testResult, result, kpiTarget, kpiOfEmployeesTarget)) {
-          testResult = result
-        }
+      const DLHS_Arguments = {
+        HMS, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs
       }
-      reScheduleTasks(testResult.assignment, assets)
+
+      let testResult = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+      // for (let i = 1; i < 20; i++) {
+      //   const result = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+      //   // const result = searchResult.bestFind
+      //   // const listFitness = searchResult.bestFitnessSolutions
+      //   // if (listFitness?.length) {
+      //   //   console.log("vào đây")
+      //   // }
+      //   // console.log("check cost: ", testResult.totalCost, " - ", result.totalCost)
+      //   const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
+      //   if (checkIsFitnessSolutionResult) {
+      //     testResult = result
+      //     console.log("target: ", kpiOfEmployeesTarget)
+      //     console.log("result: ", testResult.kpiOfEmployees)
+      //     console.log("totalCost: ", testResult.totalCost)
+      //     console.log("kpi: ", testResult.kpiAssignment)
+      //     break
+      //   }
+      //   if (!compareSolution(testResult, result, kpiTarget, kpiOfEmployeesTarget)) {
+      //     testResult = result
+      //   }
+      // }
+      // reScheduleTasks(testResult.assignment, assets)
 
       // LOG result
-      console.log("result: ", testResult.kpiOfEmployees)
-      console.log("target: ", kpiOfEmployeesTarget)
-      // console.log("assignment: ", testResult.assignment)
-      console.log("kpi: ", testResult.kpiAssignment)
-      console.log("distance: ", testResult.distanceWithKPIEmployeesTarget)
-      console.log("distance check: ", getDistanceOfKPIEmployeesTarget(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
-      console.log("distance check 2: ", getDistanceOfKPIEmployeesTarget_2(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
+      // console.log("result: ", testResult.assignment)
+      // console.log("target: ", kpiOfEmployeesTarget)
+      // console.log("totalCost: ", testResult.totalCost)
+      // console.log("kpi: ", testResult.kpiAssignment)
+      // console.log("distance: ", testResult.distanceWithKPIEmployeesTarget)
+      // console.log("distance check: ", getDistanceOfKPIEmployeesTarget(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
+      // console.log("distance check 2: ", getDistanceOfKPIEmployeesTarget_2(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
       // const checkIsFitnessSolutionResult = checkIsFitnessSolution(testResult, kpiTarget, kpiOfEmployeesTarget)
       // if (checkIsFitnessSolutionResult) {
       //   console.log("result: ", testResult.kpiOfEmployees)
@@ -241,7 +252,7 @@ function testResult() {
     });
 }
 
-testResult()
+// testResult()
 
 
 
@@ -264,20 +275,26 @@ async function fillDataToExcel() {
   // console.log("job.tasks: ", job.tasks)
   // console.log("assets: ", assets.inUse[0].usageLogs)
   job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
-  const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 102
+  const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 100
   const clusters = kMeansWithEmployees(employees, 4) 
 
-  const PAR = 0.4, HMCR = 0.95, HM_SIZE = 40, bw = 1, MAX_TER = 10000
+  const PAR = 0.4, HMCR = 0.95, HMS = 6, bw = 1, MAX_TER = 10000
   const kpiTarget = {
-    'A': { value: 0.8, weight: 0.35 },
-    'B': { value: 0.8, weight: 0.35 },
-    'C': { value: 0.8, weight: 0.3 },
+    'A': { value: 0, weight: 0.35 },
+    'B': { value: 0, weight: 0.35 },
+    'C': { value: 0, weight: 0.3 },
   }
 
+  const DLHS_Arguments = {
+    HMS, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs
+  }
   let count = 0;
   do {
     // const kpiOfEmployeesTarget = splitKPIToEmployees(job.tasks, employees, kpiTarget)
-    const kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget)
+    let kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget)
+    const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget)
+    kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
+
     console.log("kpi Of Employees Target: ", kpiOfEmployeesTarget)
     worksheet.addRow(['ID_KPI_Target', 'Target A', 'Target B', 'Target C'])
     worksheet.addRow([count + 1, kpiTarget['A'].value, kpiTarget['B'].value, kpiTarget['C'].value])
@@ -285,9 +302,9 @@ async function fillDataToExcel() {
     worksheet.addRow(['ID', 'Task ID', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Distance Of KPI', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'KPI A when splits', 'KPI A of Assignee with All Tasks', 'KPI B when splits', 'Total KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks']);
     for (let j = 0; j < 5; j++) {
       // add vào đây 
-      let testResult = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+      let testResult = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
       for (let i = 1; i < 40; i++) {
-        const result = DLHS(HM_SIZE, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs, FEs, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+        const result = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
         // const result = searchResult.bestFind
         // const listFitness = searchResult.bestFitnessSolutions
         // if (listFitness?.length) {
@@ -348,3 +365,131 @@ async function fillDataToExcel() {
 
 // Example usage
 // fillDataToExcel();
+
+async function soSanhThuatToan() {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('So sanh');
+  worksheet.addRow(['Task ID', 'Emp ID', 'Total Day Works', 'Total Cost of Emps'])
+
+  const START_DATE = new Date()
+  START_DATE.setFullYear(2024, 4, 1)
+  START_DATE.setHours(0, 0, 0, 0)
+  job = {
+    startTime: START_DATE,
+    tasks: tasks
+  }
+  job.tasks = topologicalSort(tasks)
+  job.tasks = scheduleTasksWithAsset(job, [])
+ 
+  // return
+
+  job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+
+  // console.log("job.tasks: ", job.tasks)
+  // for (let i = 0; i < job.tasks.length; i++) {
+  //   console.log(job.tasks[i])
+  // }
+
+  // return
+
+  const lastKPIs = employees.map((item) => {
+    const kpiInTask = []
+    kpiInTask.push(-1)
+    tasks.forEach(() => kpiInTask.push(0))
+    return {
+      id: item.id,
+      kpiInTask: kpiInTask
+    }
+  })
+
+  // PARAMS FOR DHLS
+  const HMS = 60, BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 1000, R = 102
+  const kpiTarget = {
+    'A': { value: 0, weight: 0.35 },
+    'B': { value: 0, weight: 0.35 },
+    'C': { value: 0, weight: 0.3 },
+  }
+
+  const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget)
+  const clusters = kMeansWithEmployees(employees, 4) 
+  kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget)
+  kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
+
+
+  const DLHS_Arguments = {
+    HMS, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs
+  }
+    
+  worksheet.addRow(['No Iter', 'Task ID', 'Emp ID', 'Start Time', 'End Time', 'Total Day Works', 'Total Cost of Emps', 'Time Exce (ms)'])
+
+  let minTimeCost = Infinity
+  let minEmpsCost = Infinity
+  let minTimeExce = Infinity
+
+
+  let totalTimeCost = 0
+  let totalEmpsCost = 0
+  let totalTimeExce = 0
+
+  for (let t = 0; t < 100; t++) {
+    console.log("t: ", t + 1)
+    
+
+    let testResult = {}
+    const start = performance.now();
+    testResult = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+    // console.log(getTimeForProject(testResult.assignment).startTime, getTimeForProject(testResult.assignment).endTime, testResult.falseDuplicate)
+
+    // for (let i = 1; i < 20; i++) {
+    //   let result = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget)
+    //   // console.log(getTimeForProject(result.assignment).startTime, getTimeForProject(result.assignment).endTime, result.falseDuplicate)
+    //   // const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
+    //   if (compareSolution(result, testResult, kpiTarget, kpiOfEmployeesTarget)) {
+    //     testResult = result
+    //   }
+    // }
+    reScheduleTasks(testResult.assignment)
+    const end = performance.now();
+    const timeExce = end - start
+    // console.log("assets: ", assets.inUse.length, assets.readyToUse.length)
+    // console.log("testResult: ", testResult.assignment)
+    // console.log("getTimeForProject: ", getTimeForProject(testResult.assignment).totalTime)
+    // console.log("get Employees Cost: ", getEmployeesCost(testResult.assignment))
+    // console.log("get Cost: ", testResult.totalCost)
+    // console.log("test kpi: ", testResult.kpiOfEmployees)
+    // console.log("test kpi: ", testResult.distanceWithKPIEmployeesTarget)
+    const getTimeWorks = getTimeForProject(testResult.assignment).totalTime
+    const empCost = getEmployeesCost(testResult.assignment)
+    console.log(getTimeForProject(testResult.assignment).startTime, getTimeForProject(testResult.assignment).endTime, empCost, testResult.falseDuplicate, getTimeForProject(testResult.assignment).totalTime)
+    totalTimeCost += getTimeWorks
+    totalEmpsCost += empCost
+    totalTimeExce += timeExce
+
+    if (minTimeCost > getTimeWorks) {
+      minTimeCost = getTimeWorks
+    }
+
+    if (minEmpsCost > empCost) {
+      minEmpsCost = empCost
+    }
+
+    if (minTimeExce > timeExce) {
+      minTimeExce = timeExce
+    }
+
+
+    for (let k = 0; k < testResult.assignment.length; k++) {
+      const { task, assignee } = testResult.assignment[k]
+      const taskID = task.id
+      const assigneeId = assignee.id
+      worksheet.addRow([t + 1, taskID, assigneeId, task.startTime, task.endTime, getTimeWorks, empCost, timeExce])
+    }
+  }
+
+  worksheet.addRow(['Num Iter', 'Average Emps Cost', 'Average Time Works', 'Average Time Exec (ms)', 'Min Emps Cost', 'Min Time Works', 'Min Time Exec (ms)'])
+  worksheet.addRow([100, totalEmpsCost / 100, totalTimeCost / 100, totalTimeExce / 100, minEmpsCost, minTimeCost, minTimeExce])
+  const filePath = 'thuat_toan_of_me_benmark.xlsx';
+  await workbook.xlsx.writeFile(filePath);
+
+}
+soSanhThuatToan()

@@ -1,4 +1,5 @@
-const { assets } = require("../data/asset");
+const { assets } = require("./data/asset");
+const ExcelJS = require('exceljs');
 
 function topologicalSort(tasks) {
   const result = [];
@@ -50,7 +51,7 @@ function reCalculateTimeWorking(time, isStartIndex = false) {
       time.setHours(8 + time.getHours() - 17)
   } else if (time.getHours() >= 12) {
       time.setHours(time.getHours())
-  } else if (time.getHours() < 8){
+  } else if (time.getHours() < 8) {
     // Nếu < 8h mà là bắt đầu của luồng công việc
       if (isStartIndex) {
           time.setHours(8)
@@ -60,7 +61,7 @@ function reCalculateTimeWorking(time, isStartIndex = false) {
       }
   };
 
-  while (time.getDay()%6 == 0) { // Không làm chủ nhật
+  while (time.getDay() % 6 == 0 || time.getDay() % 5 == 0) { // Không làm chủ nhật
       time.setDate(time.getDate() + 1);
   }
 
@@ -164,27 +165,40 @@ function isStartIndex(currentAssignment, index) {
 }
 
 
+const workbook = new ExcelJS.Workbook();
+const worksheet = workbook.addWorksheet('Test Algorithm');
+
+// worksheet.addRow(['Task ID', 'Index Of NumThreads', 'CurrrentDepth', 'currentEndTime', 'Cal Lastest']);
 function branchAndBound(numThreads, job, currentDepth, currentEndTime, currentAssignment, bestAssignment, asset) {
+
   if (currentDepth === job.tasks.length) {
     if (currentEndTime < calculateLatestCompletionTime(job)) {
       bestAssignment.splice(0, bestAssignment.length, ...currentAssignment);
     }
+
+    // worksheet.addRow(['CurrrentDepth End', 'currentEndTime End', 'Cal Lastest End']);
+    // worksheet.addRow([currentDepth, currentEndTime, calculateLatestCompletionTime(job)]);
+
     return;
   }
 
   const task = job.tasks[currentDepth];
 
   for (let index = 0; index < numThreads; index++) {
+    // worksheet.addRow([task.id, index, currentDepth, currentEndTime, calculateLatestCompletionTime(job)]);
+
     const numDay = Math.floor(task.estimateTime);
 
     const remainHour = (task.estimateTime - numDay) * 8;
 
     // Tính lại startTime cho task đó, đảm bảo thời gian tài nguyên sẵn sàng
     const startTime = reCalculateTimeWorking(calculateLatestStartTime(job.startTime, index, currentAssignment, task, asset), 
-                                                                      isStartIndex(currentAssignment, index));
+      isStartIndex(currentAssignment, index));
+    // console.log("startTime: ", startTime)
 
     // Endtime: starttime + duration
     const endTime = reCalculateTimeWorking(new Date(startTime.getTime() + numDay * 86400000 + remainHour * 3600000));
+    // console.log("endtime: ", endTime)
     const threadIndex = index;
     const newAssignment = [...currentAssignment];
     newAssignment[currentDepth] = { ...task, startTime, endTime, threadIndex };
@@ -192,12 +206,16 @@ function branchAndBound(numThreads, job, currentDepth, currentEndTime, currentAs
     if (calculateLatestCompletionTime({ startTime: job.startTime, tasks: newAssignment }) > calculateLatestCompletionTime(job)) {
       continue;
     }
-
     branchAndBound(numThreads, job, currentDepth + 1, endTime, newAssignment, bestAssignment, asset);
   }
+  // const filePath = 'test_log_t.xlsx';
+  // await workbook.xlsx.writeFile(filePath);
 }
 
+const fs = require('fs')
+
 function findOptimalAssignment(job, numThreads, asset) {
+
   const bestAssignment = initBestAssignment(job);
   branchAndBound(numThreads, job, 0, job.startTime, [], bestAssignment, asset);
   bestAssignment.sort((a, b) => a.index - b.index);
@@ -227,11 +245,11 @@ function calculateRandomAssigneCost(job) {
       const endTime = new Date(Math.max(...tasks.map(_ => new Date(_.endTime))));
       let salary = 0;
       if (tasks[0].assignee == null){
-          salary = Math.max(...employees.map(_ => _.salary))
+        salary = Math.max(...employees.map(_ => _.costPerHour))
       } else {
-          salary = tasks[0].assignee.salary
+        salary = tasks[0].assignee.costPerHour
       };
-      const taskCost = (endTime - startTime) / (1000 * 60 * 60 * 24) * salary;
+      const taskCost = (endTime - startTime) / (1000 * 60 * 60 * 24) * salary * 8;
       totalCost = totalCost + taskCost;
   }
 
@@ -425,5 +443,6 @@ module.exports = {
   assignTasks,
   branchAndBoundEmployee,
   scheduleTasks,
-  scheduleTasksNotParalell
+  scheduleTasksNotParalell,
+  reCalculateTimeWorking
 }
