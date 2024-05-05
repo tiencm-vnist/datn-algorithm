@@ -494,11 +494,11 @@ function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) 
         if (solutionA.falseDuplicate === solutionB.falseDuplicate) {
           // reScheduleTasks(solutionA.assignment, assets)
           // reScheduleTasks(solutionB.assignment, assets)
-          const timeA = getTimeForProject(solutionA.assignment).totalTime
-          const timeB = getTimeForProject(solutionB.assignment).totalTime
-          // console.log("timeA: ", timeA)
-          // console.log("timeB: ", timeB)
-          return timeA < timeB
+          // const timeA = getTimeForProject(solutionA.assignment).totalTime
+          // const timeB = getTimeForProject(solutionB.assignment).totalTime
+          // // console.log("timeA: ", timeA)
+          // // console.log("timeB: ", timeB)
+          // return timeA < timeB
           if (solutionA.falseDuplicate === 0) {
             return solutionA.totalCost < solutionB.totalCost
           } else {

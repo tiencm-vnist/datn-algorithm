@@ -1,18 +1,18 @@
 const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS } = require("../consts/kpi.const");
 const { scheduleTasks, topologicalSort } = require("../helper");
-// const { assets, assetAll } = require("../data/asset");
-// const { employees } = require("../data/employee");
+const { assets, assetAll } = require("./dangnv/data/asset");
+const { employees } = require("./dangnv/data/employee");
 // const { lastKPIs } = require("../data/kpi");
-// const { tasks } = require("../data/task");
+const { tasks } = require("./dangnv/data/task");
 const ExcelJS = require('exceljs');
 const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compareSolution, scheduleTasksWithAsset, reScheduleTasks, newHarmonySearch, checkIsFitnessSolution, splitKPIToEmployees, DLHS, getDistanceOfKPIEmployeesTarget, getDistanceOfKPIEmployeesTarget_2, getTimeForProject, getEmployeesCost } = require("./hs_helper");
 // CHIẾN LƯỢC 1: BƯỚC 1: GÁN TÀI NGUYÊN VÀ KHUNG THỜI GIAN SAO CHO NHỎ NHẤT CÓ THỂ (THỰC HIỆN SONG SONG VÀ CHECK LUÔN 1 TÀI NGUYÊN CHỈ THỰC HIỆN 1 TASK TẠI 1 THỜI ĐIỂM)
 
-const tasks = require('../data-benmark/get-data').tasks
-const employees = require('../data-benmark/get-data').employees
+// const tasks = require('../data-benmark/get-data').tasks
+// const employees = require('../data-benmark/get-data').employees
 
-console.log("task: ", tasks)
-console.log("emps: ", employees)
+// console.log("task: ", tasks)
+// console.log("emps: ", employees)
 
 // SAVE result to ./output/output.json files
 const fileName = './algorithms/output/kpi_employee.json'
@@ -378,8 +378,10 @@ async function soSanhThuatToan() {
     startTime: START_DATE,
     tasks: tasks
   }
+
+  // console.log("job: ", job.tasks)
   job.tasks = topologicalSort(tasks)
-  job.tasks = scheduleTasksWithAsset(job, [])
+  job.tasks = scheduleTasksWithAsset(job, assets)
  
   // return
 
@@ -403,7 +405,7 @@ async function soSanhThuatToan() {
   })
 
   // PARAMS FOR DHLS
-  const HMS = 60, BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 1000, R = 102
+  const HMS = 60, BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, R = 102
   const kpiTarget = {
     'A': { value: 0, weight: 0.35 },
     'B': { value: 0, weight: 0.35 },
@@ -488,7 +490,7 @@ async function soSanhThuatToan() {
 
   worksheet.addRow(['Num Iter', 'Average Emps Cost', 'Average Time Works', 'Average Time Exec (ms)', 'Min Emps Cost', 'Min Time Works', 'Min Time Exec (ms)'])
   worksheet.addRow([100, totalEmpsCost / 100, totalTimeCost / 100, totalTimeExce / 100, minEmpsCost, minTimeCost, minTimeExce])
-  const filePath = 'thuat_toan_of_me_benmark.xlsx';
+  const filePath = 'thuat_toan_of_me.xlsx';
   await workbook.xlsx.writeFile(filePath);
 
 }
