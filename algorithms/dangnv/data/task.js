@@ -247,46 +247,46 @@ const tasks = [
     ],
     requireAssign: {},
   },
-  {
-    id: 13,
-    name: "Task 13",
-    estimateTime: 4,
-    preceedingTasks: [9],
-    startTime: null,
-    endTime: null,
-    requireAsset: [
-      {
-        type: "Pantry",
-        number: 1,
-        quality: [
-          {
-            level: 1
-          }
-        ]
-      }
-    ],
-    requireAssign: {},
-  },
-  {
-    id: 14,
-    name: "Task 14",
-    estimateTime: 5,
-    preceedingTasks: [],
-    startTime: null,
-    endTime: null,
-    requireAsset: [
-      {
-        type: "Table",
-        number: 1,
-        quality: [
-          {
-            level: 1
-          }
-        ]
-      }
-    ],
-    requireAssign: {},
-  },
+  // {
+  //   id: 13,
+  //   name: "Task 13",
+  //   estimateTime: 4,
+  //   preceedingTasks: [],
+  //   startTime: null,
+  //   endTime: null,
+  //   requireAsset: [
+  //     {
+  //       type: "Pantry",
+  //       number: 1,
+  //       quality: [
+  //         {
+  //           level: 1
+  //         }
+  //       ]
+  //     }
+  //   ],
+  //   requireAssign: {},
+  // },
+  // {
+  //   id: 14,
+  //   name: "Task 14",
+  //   estimateTime: 5,
+  //   preceedingTasks: [],
+  //   startTime: null,
+  //   endTime: null,
+  //   requireAsset: [
+  //     {
+  //       type: "Table",
+  //       number: 1,
+  //       quality: [
+  //         {
+  //           level: 1
+  //         }
+  //       ]
+  //     }
+  //   ],
+  //   requireAssign: {},
+  // },
 ]
 
 module.exports = {

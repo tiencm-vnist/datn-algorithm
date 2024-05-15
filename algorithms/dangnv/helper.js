@@ -93,50 +93,94 @@ function initBestAssignment(job) {
 // lấy thời gian có thể dùng được asset cho task này
 function getAvailableTimeForAsset(task, asset) {
   if (task.requireAsset.length == 0) {
-    return new Date(0);
+    return {
+      availableTime: new Date(0),
+      taskAssets: []
+    }
   }
+  let taskAssets = []
 
-  let availableTime = [];
+  let availableTimeList = [];
   task.requireAsset.forEach(require => {
-    let readyToUse = asset.readyToUse.filter(_ => JSON.stringify(_.type).includes(require.type));
+    // console.log("require.type: ", require.type, require.number)
+    let readyToUse = asset.readyToUse.filter((item) => item.type === (require.type));
+    // console.log("readyToUse: ", readyToUse)
     // Nếu có tài nguyên yêu cầu và đủ số lượng => trả về timeavailable = 0 
     if (readyToUse.length >= require.number) {
-      availableTime.push(new Date(0));
+      availableTimeList.push(new Date(0));
+      let readyToUseTemp = readyToUse.slice(0, require.number)
+
+      if (readyToUseTemp?.length) {
+        for (let j = 0; j < readyToUseTemp?.length; j++) {
+          taskAssets.push(readyToUseTemp[j])
+        }
+      }
     }
     else {
       // Nếu không đủ số lượng
       let remain = require.number - readyToUse.length;
-      let inUse = asset.inUse.filter(_ => JSON.stringify(_.type).includes(require.type));
+      // console.log("inUse: ", asset.inUse, require.type)
+      let inUse = asset.inUse.filter((item) => item.type === (require.type));
+      // console.log("inUse: ", inUse)
       if (inUse?.length && remain <= inUse?.length) {
         // Lấy cả bọn tài nguyên đang được sử dụng ra 
-        let logs = inUse.map(_=>_.usageLogs.sort((a, b) => b.endDate - a.endDate)[0].endDate).sort((a, b) =>  a - b);
+        let logs = inUse.map(_ => _.usageLogs.sort((a, b) => b.endDate - a.endDate)[0].endDate).sort((a, b) => a - b);
+        let sortedAssets = inUse.map(asset => {
+          const latestLog = asset.usageLogs.sort((a, b) => b.endDate - a.endDate)[0].endDate;
+          return { asset, latestLog };
+        }).sort((a, b) => a.latestLog - b.latestLog);
+        let sortedAssetsTemp = sortedAssets.slice(0, remain).map((item) => item.asset)
+
+        if (sortedAssetsTemp?.length) {
+        for (let j = 0; j < sortedAssetsTemp?.length; j++) {
+          taskAssets.push(sortedAssetsTemp[j])
+        }
+      }
+
         // trả về mảng logs mới nhất của các tài nguyên đang sử dụng, trong đó chứa endDate gần nhất (tức là endDate sẽ được dùng available) của từng thằng tài nguyên đang sử dụng)), logs theo thứ tự tăng dần của endaDate của từng thằng tài nguyên đang dùng
         // Nến ví dụ cần 2 thằng thì thời điểm sớm nhất để 2 thằng đó được sử dụng là logs của thằng thứ 2 (remain - 1)
-        availableTime.push(logs[remain - 1])
+        availableTimeList.push(new Date(logs[remain - 1]))
       } else {
         // Check từ đầu luôn khi tạo task cũng được
         throw Error("Không đủ tài nguyên")
       }
     }
   });
-  return new Date(Math.max(...availableTime)); // trả về thời gian mà tài nguyên có thể available cho task đó (thời gian sớm nhất nhưng phải lấy max)
+  // console.log("test: ", availableTimeList, taskAssets)
+  return {
+    availableTime: new Date(Math.max(...availableTimeList)),
+    taskAssets
+  }
+    // trả về thời gian mà tài nguyên có thể available cho task đó (thời gian sớm nhất nhưng phải lấy max)
 }
 
 function calculateLatestStartTime(jobStartTime, index, currentAssignment, task, asset) {
   let taskInThread = currentAssignment.filter(_ => _.threadIndex == index); // Tìm task với threadIndex = index
   let prevTaskEndTime = currentAssignment.filter(_ => task.preceedingTasks.includes(_.id)).map(_ => new Date(_.endTime)); // Lấy những thằng endtime của currentAssignment thỏa mãn là task tiên quyết của task hiện tại đang xét 
-  let availableTimeForAsset = getAvailableTimeForAsset(task, asset); // lấy available time cho asset để thực hiện task hiện tại
-  prevTaskEndTime.push(availableTimeForAsset)
+  let testResult = getAvailableTimeForAsset(task, asset); // lấy available time cho asset để thực hiện task hiện tại
+  let {availableTime, taskAssets} = testResult
+  prevTaskEndTime.push(availableTime)
+  // console.log("availableTime: ", availableTime)
 
   if (taskInThread.length == 0) {
     prevTaskEndTime.push(jobStartTime)
 
-    return new Date(Math.max(...prevTaskEndTime));
+    return {
+      lastestStartTime: new Date(Math.max(...prevTaskEndTime)),
+      taskAssets: taskAssets
+    }
   }
 
+  // console.log("taskInThread: ", taskInThread)
   let listEndTimeInThread = taskInThread.map(_ => new Date(_.endTime));
+  // console.log("listEndTimeInThread: ", listEndTimeInThread)
+  // console.log("task: ", task)
+  // console.log("...listEndTimeInThread.concat(prevTaskEndTime): ", ...listEndTimeInThread.concat(prevTaskEndTime), "task", task.id)
 
-  return new Date(Math.max(...listEndTimeInThread.concat(prevTaskEndTime)));
+  return {
+    lastestStartTime: new Date(Math.max(...listEndTimeInThread.concat(prevTaskEndTime))),
+    taskAssets
+  }
 }
 
 // Tính thời gian hoàn thành muộn nhất các tasks trong job
@@ -167,6 +211,39 @@ function isStartIndex(currentAssignment, index) {
 
 const workbook = new ExcelJS.Workbook();
 const worksheet = workbook.addWorksheet('Test Algorithm');
+function markAssetsAsUsed(currentAssets, taskAssets, startTime, endTime) {
+  let updateInUse = currentAssets.inUse
+  let updateReadyToUse = currentAssets.readyToUse
+  
+  for (let i = 0; i < taskAssets.length; i++) {
+    let taskAsset = taskAssets[i]
+    const currentStatus = taskAsset.status
+    if (!taskAsset?.usageLogs) {
+      taskAsset.usageLogs = []
+    }
+    taskAsset.usageLogs.push({
+      startDate: startTime.toISOString(),
+      endDate: endTime.toISOString()
+    })
+    // console.log("useages logs: ", taskAsset.usageLogs, taskAsset.name)
+    if (currentStatus === 'ready_to_use') {
+      taskAsset.status = 'in_use'
+      updateReadyToUse = updateReadyToUse.filter((item) => item.id !== taskAsset.id)
+      // console.log("task ")
+      updateInUse.push(taskAsset)
+    } else {
+      updateInUse = updateInUse.filter((item) => item.id !== taskAsset.id)
+      updateInUse.push(taskAsset)
+    }
+
+
+  }
+  
+  return {
+    inUse: updateInUse,
+    readyToUse: updateReadyToUse
+  }
+}
 
 // worksheet.addRow(['Task ID', 'Index Of NumThreads', 'CurrrentDepth', 'currentEndTime', 'Cal Lastest']);
 function branchAndBound(numThreads, job, currentDepth, currentEndTime, currentAssignment, bestAssignment, asset) {
@@ -192,8 +269,9 @@ function branchAndBound(numThreads, job, currentDepth, currentEndTime, currentAs
     const remainHour = (task.estimateTime - numDay) * 8;
 
     // Tính lại startTime cho task đó, đảm bảo thời gian tài nguyên sẵn sàng
-    const startTime = reCalculateTimeWorking(calculateLatestStartTime(job.startTime, index, currentAssignment, task, asset), 
-      isStartIndex(currentAssignment, index));
+    let { lastestStartTime, taskAssets } = calculateLatestStartTime(job.startTime, index, currentAssignment, task, asset)
+    // console.log("lastestStartTime: ", lastestStartTime)
+    const startTime = reCalculateTimeWorking(lastestStartTime, isStartIndex(currentAssignment, index));
     // console.log("startTime: ", startTime)
 
     // Endtime: starttime + duration
@@ -206,13 +284,16 @@ function branchAndBound(numThreads, job, currentDepth, currentEndTime, currentAs
     if (calculateLatestCompletionTime({ startTime: job.startTime, tasks: newAssignment }) > calculateLatestCompletionTime(job)) {
       continue;
     }
-    branchAndBound(numThreads, job, currentDepth + 1, endTime, newAssignment, bestAssignment, asset);
+    // console.log("startTime, endTime: ", startTime, endTime)
+    updateAssets = markAssetsAsUsed(asset, taskAssets, startTime, endTime)
+    branchAndBound(numThreads, job, currentDepth + 1, endTime, newAssignment, bestAssignment, updateAssets);
   }
   // const filePath = 'test_log_t.xlsx';
   // await workbook.xlsx.writeFile(filePath);
 }
 
-const fs = require('fs')
+const fs = require('fs');
+const { start } = require("repl");
 
 function findOptimalAssignment(job, numThreads, asset) {
 
