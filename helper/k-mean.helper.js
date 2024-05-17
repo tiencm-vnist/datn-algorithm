@@ -1,20 +1,4 @@
-const { topologicalSort } = require(".");
-const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, splitKPIToEmployees } = require("../algorithms/hs_helper");
-const { KPI_TYPES } = require("../consts/kpi.const");
-const { assets } = require("../data/asset");
-const { employees } = require("../data/employee");
-const { tasks } = require("../data/task");
-
-const START_DATE = new Date()
-START_DATE.setFullYear(2024, 4, 1)
-START_DATE.setHours(0, 0, 0, 0)
-job = {
-  startTime: START_DATE,
-  tasks: tasks
-}
-job.tasks = topologicalSort(tasks)
-job.tasks = scheduleTasksWithAsset(job, assets)
-job.tasks = getAvailableEmployeesForTasks(job.tasks, employees)
+const { KPI_TYPES } = require('../consts/kpi.const')
 
 function preprocessEmployees(employees) {
     // Find all unique qualities
@@ -379,9 +363,18 @@ function createClusterData(clusters, clusterScores) {
 function getCapacityPointOfEmployeeInTask(requiredQualities, employee) {
   let total = 0
   let count = 0
-  for (let qualityKey in requiredQualities) {
-    count++;
-    total += employee.qualities[qualityKey]
+  if (Object.keys(requiredQualities).length > 0) {
+    for (let qualityKey in requiredQualities) {
+      count++;
+      total += employee.qualities[qualityKey]
+    }
+  } else {
+    for (let qualityKey in employee.qualities) {
+      if (employee.qualities[qualityKey]) {
+        count++;
+        total += employee.qualities[qualityKey]
+      }
+    }
   }
   return total / count;
 }
@@ -394,9 +387,11 @@ function findMeanOfQuality(qualityKey, availableAssignee) {
   return mean;
 }
 
-function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
+function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData, assetHasKPIWeight = 0) {
   const kpiOfEmployee = {}
-  let { requireAssign, availableAssignee, kpiInTask, id } = task
+  let { requireAssign, availableAssignee, kpiInTask, id, requireAsset } = task
+  const IS_HAS_ASSET = requireAsset && requireAsset?.length > 0 ? true : false
+
   if (!kpiInTask) {
     kpiInTask = []
     for (let key in KPI_TYPES) {
@@ -407,17 +402,17 @@ function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
     }
   }
   // console.log("task: ", task)
-  let totalMeanOfTask = 0
-  let totalQualityRequire = 0
-  for (let qualityKey in requireAssign) {
-    totalQualityRequire++;
-    const meanCapacityOfQuality = findMeanOfQuality(qualityKey, availableAssignee)
-    // console.log("key: ", qualityKey, ": ", meanCapacityOfQuality)
-    totalMeanOfTask += meanCapacityOfQuality
-  }
-  // const total 
-  const meanCapacityOfTask = totalMeanOfTask / totalQualityRequire
-  // console.log("mean: ", meanCapacityOfTask, "task: ", task.id)
+  // let totalMeanOfTask = 0
+  // let totalQualityRequire = 0
+  // for (let qualityKey in requireAssign) {
+  //   totalQualityRequire++;
+  //   const meanCapacityOfQuality = findMeanOfQuality(qualityKey, availableAssignee)
+  //   // console.log("key: ", qualityKey, ": ", meanCapacityOfQuality)
+  //   totalMeanOfTask += meanCapacityOfQuality
+  // }
+  // // const total 
+  // const meanCapacityOfTask = totalMeanOfTask / totalQualityRequire
+  // // console.log("mean: ", meanCapacityOfTask, "task: ", task.id)
   
   let totalClusterScore = 0
   // let availableAssigneeFilter = availableAssignee.filter((employee) => getCapacityPointOfEmployeeInTask(requireAssign, employee) >= meanCapacityOfTask)
@@ -443,7 +438,7 @@ function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
     }
     // kpiOfEmployee[id]['ratio'] = getCapacityPointOfEmployeeInTask(requireAssign, employee) / meanCapacityOfTask
     const capacityOfEmployeeInTask = getCapacityPointOfEmployeeInTask(requireAssign, employee)
-    // console.log('capacity Emp: ', capacityOfEmployeeInTask)
+    console.log('capacity Emp: ', capacityOfEmployeeInTask)
     kpiOfEmployee[id]['ratio'] = capacityOfEmployeeInTask
 
     kpiInClusters[clusterId]['totalRatio'] += capacityOfEmployeeInTask
@@ -462,10 +457,11 @@ function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
     const clusterScore = kpiOfEmployee[employee.id]['clusterScore']
     const clusterId = clusterData[employee.id].cluster
     
-
-    
     kpiInTask.forEach(({ type, weight }) => {
-      const value = weight * kpiTarget[type].value * clusterScore / totalClusterScore
+      let value = weight * kpiTarget[type].value * clusterScore / totalClusterScore
+      if (IS_HAS_ASSET) {
+        value = value * (1 - assetHasKPIWeight)
+      }
       kpiOfEmployee[employee.id][type] += value
       kpiInClusters[clusterId][type] += value
       // testTotalKPI += value
@@ -485,7 +481,7 @@ function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData) {
   return kpiOfEmployee
 }
 
-function findBestMiniKPIOfTasks(tasks, kpiTarget) {
+function findBestMiniKPIOfTasks(tasks, kpiTarget, assetHasKPIWeight) {
   const minimumKpi = {}
   if (!kpiTarget['A'].value) {
     return minimumKpi
@@ -496,10 +492,14 @@ function findBestMiniKPIOfTasks(tasks, kpiTarget) {
   }
 
   tasks.forEach((task) => {
-    const { kpiInTask } = task
+    const { kpiInTask, requireAsset } = task
+    const IS_HAS_ASSET = requireAsset && requireAsset?.length > 0
     kpiInTask.forEach(({ type, weight }) => {
       if (minimumKpi[type] > weight) {
         minimumKpi[type] = weight
+        if (IS_HAS_ASSET) {
+          minimumKpi[type] = minimumKpi[type] * (1 - assetHasKPIWeight)
+        }
       }
     })
   })
@@ -569,7 +569,9 @@ function reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesBefore) {
   return kpiOfEmployees
 }
 
-function splitKPIToEmployeesByKMeans(tasks, clusters, employees, kpiTarget) {
+function splitKPIToEmployeesByKMeans(tasks, employees, kpiTarget, assetHasKPIWeight) {
+  const clusters = kMeansWithEmployees(employees, employees?.length >= 4 ? 4 : employees?.length / 2) 
+
   // Calculate cluster scores
   const clusterScores = calculateClusterScores(clusters);
 
@@ -582,11 +584,10 @@ function splitKPIToEmployeesByKMeans(tasks, clusters, employees, kpiTarget) {
     for (let key in KPI_TYPES) {
       kpiOfEmployees[employee.id][key] = 0
     }
-    // kpiOfEmployees[employee.id]['total'] = 0
   })
 
   tasks.forEach((task) => {
-    const kpiSplitInTask = splitKPIOfTaskToEmployees(task, kpiTarget, clusterData)
+    const kpiSplitInTask = splitKPIOfTaskToEmployees(task, kpiTarget, clusterData, assetHasKPIWeight)
     // console.log("kpiSplitInTask: ", kpiSplitInTask)
     for (let employeeId in kpiSplitInTask) {
       for (let key in KPI_TYPES) {
@@ -594,42 +595,9 @@ function splitKPIToEmployeesByKMeans(tasks, clusters, employees, kpiTarget) {
       }
     }
   })
-  // employees.forEach((employee) => {
-  //   const { id } = employee
-  //   for (let key in kpiTarget) {
-  //     kpiOfEmployees[id]['total'] += kpiTarget[key].weight * kpiOfEmployees[id][key]
-  //   }
-  // })
   return kpiOfEmployees
 }
 
-// const kpiTarget = {
-//   'A': { value: 0.8, weight: 0.35 },
-//   'B': { value: 0.8, weight: 0.35 },
-//   'C': { value: 0.8, weight: 0.3 },
-// }
-
-// const kpiOfEmployees_1 = splitKPIToEmployeesByKMeans(job.tasks, clusters, employees, kpiTarget) 
-// const kpiOfEmployees_2 = splitKPIToEmployees(job.tasks, employees, kpiTarget)
-// console.log("kpiOfEmployees_1: ", kpiOfEmployees_1)
-// console.log("kpiOfEmployees_2: ", kpiOfEmployees_2)
-
-
-function calculateEuclidWithSomeProperties(qualities1, qualities2) {
-
-}
-
-function getClusterFromTask(task, employees, k) {
-
-}
-
-function preKMeanWithTask(task, employees, k) {
-
-}
-
-function splitKPIOfTaskToEmployeesWithPreKMean(employees, tasks) {
-
-}
 
 module.exports = {
   kMeansWithEmployees,

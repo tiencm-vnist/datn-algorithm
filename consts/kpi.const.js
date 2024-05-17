@@ -28,9 +28,12 @@ const KPI_TYPES = {
 
 const KPI_NOT_WORK = -1
 const DAY_WORK_HOURS = 8
+const KPI_OF_ASSET_IN_TASK = 1
+
 module.exports = {
   KPI_INIT_TYPES,
   KPI_NOT_WORK,
   DAY_WORK_HOURS,
-  KPI_TYPES
+  KPI_TYPES,
+  KPI_OF_ASSET_IN_TASK
 }

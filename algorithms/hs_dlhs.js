@@ -17,7 +17,7 @@ const { getKpiOfEmployees, getAvailableEmployeesForTasks, harmonySearch, compare
 // SAVE result to ./output/output.json files
 const fileName = './algorithms/output/kpi_employee.json'
 const fs = require('fs');
-const { kMeansWithEmployees, splitKPIToEmployeesByKMeans, findBestMiniKPIOfTasks, reSplitKPIOfEmployees } = require("../helper/k-means");
+const { kMeansWithEmployees, splitKPIToEmployeesByKMeans, findBestMiniKPIOfTasks, reSplitKPIOfEmployees } = require("../helper/k-mean.helper");
 
 async function saveResult(newResult, fileName) {
   // Đọc dữ liệu từ file JSON

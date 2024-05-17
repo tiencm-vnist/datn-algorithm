@@ -19,6 +19,7 @@ const employees = [
       manual_test: 1,
       automation_test: 3,
     },
+    capacity: 85
   },
   {
     id: 2, 
@@ -40,6 +41,7 @@ const employees = [
       unit_test: 2,
       manual_test: 1,
     },
+    capacity: 70
   },
   {
     id: 3, 
@@ -61,6 +63,7 @@ const employees = [
       unit_test: 1,
       manual_test: 1,
     },
+    capacity: 40
   },
   {
     id: 7, 
@@ -73,6 +76,7 @@ const employees = [
       degree: 3,
       year_of_exp: 2,
       english: 4,
+      // level: 3,
       backend: 2,
       frontend: 3,
       automation_test: 2,
@@ -81,6 +85,7 @@ const employees = [
       unit_test: 2,
       manual_test: 1,
     },
+    capacity: 45
   },
   {
     id: 4, 
@@ -93,13 +98,15 @@ const employees = [
       degree: 2,
       year_of_exp: 1,
       english: 3,
-      manual_test: 1,
-      unit_test: 2,
+      // level: 1,
       backend: 2,
+      ci_cd: 1,
       frontend: 2,
       docker: 2,
-      ci_cd: 1,
+      unit_test: 2,
+      manual_test: 1,
     },
+    capacity: 22
   },
   {
     id: 8, 
@@ -110,14 +117,16 @@ const employees = [
     costPerHour: 2.5,
     qualities: {
       degree: 2,
-      year_of_exp: 1,
       english: 4,
-      manual_test: 1,
-      unit_test: 2,
+      // level: 1,
       backend: 1,
       frontend: 3,
       docker: 1,
+      year_of_exp: 1,
+      unit_test: 2,
+      manual_test: 1,
     },
+    capacity: 19
   },
   {
     id: 5,
@@ -130,10 +139,12 @@ const employees = [
       degree: 2,
       year_of_exp: 2,
       english: 5,
+      // level: 2,
       manual_test: 5,
       automation_test: 3,
       unit_test: 4,
     },
+    capacity: 35
   },
   {
     id: 6,
@@ -146,10 +157,12 @@ const employees = [
       degree: 2,
       year_of_exp: 3,
       english: 6,
+      // level: 2,
       manual_test: 4,
       automation_test: 2,
       unit_test: 3,
     },
+    capacity: 70
   }
 ]
 

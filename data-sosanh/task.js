@@ -70,7 +70,7 @@ const tasks = [
     //   }
     // },
     requireAssign: {
-      // degree: 2,
+      degree: 2,
       backend: 2,
       frontend: 1,
       docker: 1,
@@ -133,7 +133,7 @@ const tasks = [
       },
     ],
     requireAssign: {
-      // degree: 2,
+      degree: 2,
       backend: 1,
       frontend: 2,
       year_of_exp: 1
@@ -163,7 +163,7 @@ const tasks = [
       },
     ],
     requireAssign: {
-      // degree: 2,
+      degree: 2,
       ci_cd: 2,
       docker: 2,
       year_of_exp: 1
@@ -283,9 +283,7 @@ const tasks = [
     // requireAssign: ["Dev", "Tester"],
     requireAssign: {
       degree: 2,
-      unit_test: 2,
-      // manual_test: 1,
-      // automation_test: 1
+      unit_test: 2
     },
     estimateTime: 2,
     kpiInTask: [
@@ -313,7 +311,7 @@ const tasks = [
     ],
     requireAssign: {
       year_of_exp: 3,
-      degree: 2
+
     },
     estimateTime: 1,
     kpiInTask: [
@@ -516,7 +514,7 @@ const tasks = [
     ],
     // requireAssign: ["Dev", "Leader"],
     requireAssign: {
-      backend: 2,
+      backend: 1,
       frontend: 2
     },
     estimateTime: 7,
@@ -545,8 +543,7 @@ const tasks = [
     ],
     // requireAssign: ["Dev", "Leader"],
     requireAssign: {
-      frontend: 2,
-      backend: 1,
+      frontend: 3,
     },
     estimateTime: 6,
     kpiInTask: [
