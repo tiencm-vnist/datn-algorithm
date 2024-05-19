@@ -7,9 +7,10 @@ const { employees } = require('../data/employee');
 const { lastKPIs } = require('../data/kpi');
 
 const { topologicalSort } = require('../helper/index');
-const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, checkIsFitnessSolution, compareSolution, reScheduleTasks, getKpiOfEmployees, DLHS, getTimeForProject, getDistanceOfKPIEmployeesTarget_2, getAvailableEmployeesWithCheckConflict, scheduleTasksWithAssetAndEmpTasks } = require('./hs_helper');
+const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, checkIsFitnessSolution, compareSolution, reScheduleTasks, getKpiOfEmployees, DLHS, getTimeForProject, getDistanceOfKPIEmployeesTarget_2, getAvailableEmployeesWithCheckConflict, scheduleTasksWithAssetAndEmpTasks, getLastKPIAndAvailableEmpsInTasks } = require('./hs_helper');
 const { kMeansWithEmployees, splitKPIToEmployeesByKMeans, findBestMiniKPIOfTasks, reSplitKPIOfEmployees } = require('../helper/k-mean.helper');
 const { allTasksOutOfProject } = require('../data/taskOutofProject');
+const { allTasksInPast } = require('../data/taskInPast');
 
 
 async function test() {
@@ -27,7 +28,16 @@ async function test() {
   job.tasks = topologicalSort(tasks)
   // console.log("job.tasks: ", job.tasks)
   // job.tasks = scheduleTasksWithAsset(job, assets)
-  job.tasks = getAvailableEmployeesForTasks(job.tasks, employees, lastKPIs)  
+  // console.log("emp: ", employees)
+  // const allTasksInPast = require('./taskInPast').allTasksInPast
+
+
+  const lastKPIs = getLastKPIAndAvailableEmpsInTasks(job.tasks, allTasksInPast, employees)
+  // console.log("lastKPIs: ", lastKPIs)
+  // job.tasks = getAvailableEmployeesForTasks(job.tasks, employees, lastKPIs)  
+  // job.tasks.forEach(task => {
+  //   console.log(task.id, ": ", task.availableAssignee.map((item) => item.id).join(", "))
+  // });
 
 
   // return
@@ -47,23 +57,15 @@ async function test() {
 
   let count = 0;
   let kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, employees, kpiTarget, assetHasKPIWeight)
-  // console.log("kpiOfEmployees Target: ", kpiOfEmployeesTarget)
 
   const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget, assetHasKPIWeight)
-  // console.log("minimum: ", minimumKpi)
   kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
-  // console.log("kpiOfEmployees Target: ", kpiOfEmployeesTarget)
+  // console.log("kpiTarget: ", kpiOfEmployeesTarget)
 
   job.tasks = scheduleTasksWithAssetAndEmpTasks(job, assets, allTasksOutOfProject)
-  // console.log("job.tasks: ", job.tasks.map((item) => item.id + "[" + item.availableAssignee.map((item) => item.id).join(", ") + "]"))
-
-  // job.tasks = getAvailableEmployeesWithCheckConflict(job.tasks, allTasksOutOfProject)
-  // console.log("job.tasks: ", job.tasks.map((item) => item.id + "[" + item.availableAssignee.map((item) => item.id).join(", ") + "]" + " check: " + item.isConflict))
-
-  // return
-  
-  
-  
+  // job.tasks.forEach(task => {
+  //   console.log(task.id, ": ", task.availableAssignee.map((item) => item.id).join(", "))
+  // });
   worksheet.addRow(['ID_KPI_Target', 'Target A', 'Target B', 'Target C'])
   worksheet.addRow([count + 1, kpiTarget['A'].value, kpiTarget['B'].value, kpiTarget['C'].value])
   // Add headers

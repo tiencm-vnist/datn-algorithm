@@ -438,7 +438,7 @@ function splitKPIOfTaskToEmployees(task, kpiTarget, clusterData, assetHasKPIWeig
     }
     // kpiOfEmployee[id]['ratio'] = getCapacityPointOfEmployeeInTask(requireAssign, employee) / meanCapacityOfTask
     const capacityOfEmployeeInTask = getCapacityPointOfEmployeeInTask(requireAssign, employee)
-    console.log('capacity Emp: ', capacityOfEmployeeInTask)
+    // console.log('capacity Emp: ', capacityOfEmployeeInTask)
     kpiOfEmployee[id]['ratio'] = capacityOfEmployeeInTask
 
     kpiInClusters[clusterId]['totalRatio'] += capacityOfEmployeeInTask

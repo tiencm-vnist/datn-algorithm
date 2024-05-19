@@ -14,22 +14,230 @@ function findEmployeesWithQualities(employees, requiredQualities) {
   return employeesWithRequiredQualities;
 }
 
+function getVectorLength(vector) {
+  let length = 0;
+  for (const key in vector) {
+    length += vector[key] * vector[key]
+  }
+  return Math.sqrt(length)
+}
+function getDistanceQualityVector(vector1, vector2) {
+  if (vector1 === undefined) {
+    vector1 = {}
+  }
+  if (vector2 === undefined) {
+    vector2 = {}
+  }
+  // Tạo một mảng mới để lưu trữ các key của cả hai vector
+  const allKeys = new Set([...Object.keys(vector1), ...Object.keys(vector2)]);
+
+  let distance = 0;
+
+  for (const key of allKeys) {
+    const value1 = vector1[key] || 0;
+    const value2 = vector2[key] || 0;
+    const diff = value1 - value2
+
+    const squaredDifference = diff * diff;
+
+    distance += squaredDifference;
+  }
+
+  return Math.sqrt(distance);
+}
+
+function findTasksWithMatchingTagsAndRequire(allTasks, task) {
+  // Lọc mảng allTasks để tìm các task có tags bao gồm tags của task đầu vào
+  const { requireAssign } = task
+  const taskKeys = Object.keys(requireAssign !== undefined ? requireAssign : {}).sort()
+  
+  return allTasks.filter((currentTask) => {
+
+    const requireAssignOfCurrentTask = currentTask?.requireAssign
+    // Kiểm tra tags
+    if (!requireAssignOfCurrentTask || !Object.keys(requireAssignOfCurrentTask).length) {
+      return false
+    }
+    
+    if (!task.tags.every((tag) => currentTask.tags.includes(tag)) || !currentTask.tags.every((tag) => task.tags.includes(tag))) {
+      return false;
+    }
+    const taskKeysItem = Object.keys(requireAssignOfCurrentTask).sort()
+
+    if (Math.abs(taskKeys?.length - taskKeysItem?.length) > 1) {
+      return false
+    }
+
+    if (taskKeys?.length >= taskKeysItem?.length) {
+      for (const key of taskKeysItem) {
+        if (!taskKeys.includes(key)) {
+          return false
+        }
+      }
+    } else {
+      for (const key of taskKeys) {
+        if (!taskKeysItem.includes(key)) {
+          return false
+        }
+      }
+    }
+
+    // Kiểm tra requireAssign
+    // for (const key in requireAssign) {
+    //   if (requireAssignOfCurrentTask[key] === undefined || requireAssignOfCurrentTask[key] === 0) {
+    //     return false;
+    //   }
+    // }
+
+    return true;
+  });
+}
+
+function getLastKPIAndAvailableEmpsInTasks(tasks, allTasksInPast, employees) {
+  const lastKPIsOfEmps = []
+  employees.forEach((employee) => {
+    const id = employee.id
+    let kpiInTask = []
+    tasks.forEach(() => {
+      kpiInTask.push(0)
+    })
+    kpiInTask.push(0)
+    lastKPIsOfEmps.push({
+      id,
+      kpiInTask: kpiInTask
+    })
+  })
+  lastKPIsOfEmps.sort((a, b) => a.id - b.id)
+  // console.log("lastKPI: ", lastKPIsOfEmps)
+  tasks.forEach((task) => {
+    const { requireAssign } = task
+    let availableAssignee = employees
+    
+    if (requireAssign === undefined || !Object.keys(requireAssign)?.length) {
+      employees.map((employee) => {
+        const employeeId = employee.id
+        let kpiValue = 0
+        taskOfEmps = allTasksInPast.filter((item) => item.assignee.id === employeeId).sort((a, b) => b.evaluatePoint - a.evaluatePoint)
+        kpiValue = taskOfEmps[0].evaluatePoint
+        kpiInTaskWithEmp = lastKPIsOfEmps.find((item) => item.id === employee.id)
+
+        kpiInTaskWithEmp[task.id] = kpiValue
+      })
+    } else {
+      const listTasksMatching = findTasksWithMatchingTagsAndRequire(allTasksInPast, task)
+      availableAssignee = findEmployeesWithQualities(employees, requireAssign)
+      // console.log("Avai 1: ", availableAssignee.map((item) => item.id))
+      const vectorLengthAssigneeCurrentTask = getVectorLength(requireAssign)
+  
+      if (!availableAssignee || !availableAssignee?.length) {
+        throw Error("Tồn tại công việc không có ai có khả năng làm dược")
+      }
+      availableAssignee.forEach((employee) => {
+        let listTasksMatchingWithEmp = listTasksMatching.filter((item) => item.assignee.id === employee.id)
+        if (listTasksMatchingWithEmp && listTasksMatchingWithEmp?.length > 0) {
+          listTasksMatchingWithEmp = listTasksMatchingWithEmp.sort((a, b) => {
+            const distanceA = getDistanceQualityVector(a.requireAssign, requireAssign);
+            const distanceB = getDistanceQualityVector(b.requireAssign, requireAssign);
+  
+            // So sánh khoảng cách
+            if (distanceA !== distanceB) {
+              return distanceA - distanceB;
+            }
+  
+            // Nếu khoảng cách bằng nhau, so sánh theo thuộc tính khác
+            return a.evaluatePoint - b.evaluatePoint;
+          });
+  
+          let kpiValue = 0
+
+          // console.log("task: ", task.id, "emp: ", employee.id, "listTaskMachingWithEmps", listTasksMatchingWithEmp.map((item) => item.id))
+          const taskFail = listTasksMatchingWithEmp.find((item) =>         
+            item.evaluatePoint === -1 && getVectorLength(item.requireAssign) <= getVectorLength(task.requireAssign)
+          )
+          kpiInTaskWithEmp = lastKPIsOfEmps.find((item) => item.id === employee.id)
+  
+          if (taskFail) {
+            kpiInTaskWithEmp.kpiInTask[task.id] = -1
+          } else {
+            let kpiValueFromTaskInPast = listTasksMatchingWithEmp[0].evaluatePoint
+            const vectorLengthAssigneePastTask = getVectorLength(listTasksMatchingWithEmp[0].requireAssign)
+            if (vectorLengthAssigneeCurrentTask <= vectorLengthAssigneePastTask) {
+              kpiValue = kpiValueFromTaskInPast
+            } else {
+              kpiValue = kpiValueFromTaskInPast * Math.sqrt(vectorLengthAssigneePastTask / vectorLengthAssigneeCurrentTask)
+            }
+            kpiInTaskWithEmp.kpiInTask[task.id] = kpiValue
+
+            //
+          }
+          // console.log("task: ", task.id, "- emp: ", employee.id, "- kpi: ", kpiValue)
+        }
+      })
+      
+    }
+
+
+    let updateAvailableAssignee = availableAssignee.filter((employee) => {
+      const employeeId = employee.id
+      const lastKPIOfEmp = lastKPIsOfEmps.find((item) => item.id === employeeId)
+      // kiểm tra mấy thằng bị KPI gán = -1
+      if (lastKPIOfEmp.kpiInTask[task.id] === -1) {
+        return false
+      } else {
+        return true
+      }
+    })
+    task.availableAssignee = updateAvailableAssignee
+    // console.log("task: ", task.id, "Avai 2: ", task.availableAssignee.map((item) => item.id))
+
+  })
+
+
+  tasks.forEach((task) => {
+    const { availableAssignee, id } = task
+    // console.log("task: ", id, "emp: ",availableAssignee.map((item) => item.id).join(", "), lastKPIsOfEmps.map((item) => item.kpiInTask[id]))
+
+    availableAssignee.map((employee) => {
+      const employeeId = employee.id
+      let kpiOfEmployeeInTask = lastKPIsOfEmps.find((item) => item.id === employeeId)
+      let kpiValue = kpiOfEmployeeInTask.kpiInTask[id]
+      if (kpiValue === 0) {
+        let kpiOfOthersEmployeeInTask = lastKPIsOfEmps.map((item) => item.kpiInTask[id]).filter((item) => item !== KPI_NOT_WORK && item !== 0).sort((a, b) => a - b)
+        // console.log("task: ", id, "emp: ", employee.id, "kpi: ", kpiOfOthersEmployeeInTask)
+        if (kpiOfOthersEmployeeInTask?.length) {
+          kpiValue = kpiOfOthersEmployeeInTask[0]
+        } else {
+          kpiValue = Math.random(0.7, 1)
+        }
+        kpiOfEmployeeInTask.kpiInTask[id] = kpiValue
+      }
+    })
+    // console.log("task: ", id, "emp: ",availableAssignee.map((item) => item.id).join(", "), lastKPIsOfEmps.map((item) => item.kpiInTask[id]))
+
+  })
+  return lastKPIsOfEmps
+}
+
 function getAvailableEmployeesForTasks(tasks, employees, lastKPIs) {
   return tasks.map((task) => {
     let availableAsset = []
     // let availableAssignee = []
     const availableAssignee = findEmployeesWithQualities(employees, task.requireAssign)
+    // console.log("ava: ", availableAssignee.map((item) => item.id))
     const taskId = task.id
     // Xử lý các nhân viên đã bị điều chỉnh task này
     let availableWithCheckInPast = availableAssignee.filter((assignee) => {
       const { id } = assignee
       const lastKPIOfAssignee = lastKPIs.find((item) => item.id === id)
-      if (lastKPIOfAssignee[taskId] !== -1) {
+      // console.log("id: ", id, lastKPIOfAssignee)
+      if (lastKPIOfAssignee.kpiInTask[taskId] !== -1) {
         return true
       } else {
         return false
       }
     })
+    // console.log("last ava: ", availableWithCheckInPast.map((item) => item.id))
+
     return {
       ...task,
       availableAssignee: availableWithCheckInPast && availableWithCheckInPast?.length > 0 ? availableWithCheckInPast : availableAssignee,
@@ -1704,5 +1912,7 @@ module.exports = {
   getEmployeesCost,
   reScheduleTasksNotAsset,
   getAvailableEmployeesWithCheckConflict,
-  scheduleTasksWithAssetAndEmpTasks
+  scheduleTasksWithAssetAndEmpTasks,
+  // getLastKPIInTasks
+  getLastKPIAndAvailableEmpsInTasks
 }

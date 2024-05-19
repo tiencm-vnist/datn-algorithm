@@ -5,6 +5,7 @@ const tasks = [
     preceedingTasks: [14],
     startTime: null,
     endTime: null,
+    tags: ['analysis'],
     requireAsset: [
       // { type: "Server", number: 1, technicalCapacity: 75 },
       // { 
@@ -53,6 +54,7 @@ const tasks = [
         ]
       },
     ],
+    tags: ['backend', 'frontend'],
     estimateTime: 7,
     // requireAssign: {
     //   degree: {
@@ -90,6 +92,7 @@ const tasks = [
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
+    tags: ['frontend'],
     requireAsset: [
       { 
         type: "Laptop", 
@@ -123,6 +126,7 @@ const tasks = [
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
+    tags: ['frontend'],
     requireAsset: [
       { 
         type: "Laptop", 
@@ -153,6 +157,7 @@ const tasks = [
     preceedingTasks: [12],
     startTime: null,
     endTime: null,
+    tags: ['devops'],
     requireAsset: [
       { 
         type: "Server", 
@@ -183,6 +188,7 @@ const tasks = [
     preceedingTasks: [10],
     startTime: null,
     endTime: null,
+    tags: ['testing'],
     requireAsset: [
       { 
         type: "Table", 
@@ -212,6 +218,7 @@ const tasks = [
     preceedingTasks: [2, 3, 4, 9, 16, 17, 18],
     startTime: null,
     endTime: null,
+    tags: ['testing'],
     requireAsset: [
       { 
         type: "Table", 
@@ -225,6 +232,7 @@ const tasks = [
     requireAssign: {
       manual_test: 1,
       unit_test: 1,
+      automation_test: 1
     },
     estimateTime: 5,
     kpiInTask: [
@@ -241,6 +249,7 @@ const tasks = [
     preceedingTasks: [7],
     startTime: null,
     endTime: null,
+    tags: ['frontend', 'backend'],
     requireAsset: [
       { 
         type: "Table", 
@@ -271,6 +280,7 @@ const tasks = [
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
+    tags: ['testing'],
     requireAsset: [
       { 
         type: "Table", 
@@ -302,6 +312,7 @@ const tasks = [
     preceedingTasks: [],
     startTime: null,
     endTime: null,
+    tags: ['planning'],
     requireAsset: [
       { 
         type: "Table", 
@@ -330,6 +341,7 @@ const tasks = [
     preceedingTasks: [8],
     startTime: null,
     endTime: null,
+    tags: ['collecting'],
     requireAsset: [
       { 
         type: "Pantry", 
@@ -358,6 +370,7 @@ const tasks = [
     preceedingTasks: [11],
     startTime: null,
     endTime: null,
+    tags: ['backend', 'frontend'],
     requireAsset: [
       { 
         type: "Server", 
@@ -388,6 +401,7 @@ const tasks = [
     preceedingTasks: [1],
     startTime: null,
     endTime: null,
+    tags: ['idea'],
     requireAsset: [
       { 
         type: "Table", 
@@ -416,6 +430,7 @@ const tasks = [
     preceedingTasks: [],
     startTime: null,
     endTime: null,
+    tags: ['documents'],
     requireAsset: [
       { 
         type: "Laptop", 
@@ -444,6 +459,7 @@ const tasks = [
     preceedingTasks: [5],
     startTime: null,
     endTime: null,
+    tags: ['documents'],
     requireAsset: [
       { 
         type: "Table", 
@@ -475,6 +491,7 @@ const tasks = [
     preceedingTasks: [2, 13],
     startTime: null,
     endTime: null,
+    tags: ['frontend'],
     requireAsset: [
       { 
         type: "Laptop", 
@@ -505,6 +522,7 @@ const tasks = [
     preceedingTasks: [3, 13],
     startTime: null,
     endTime: null,
+    tags: ['backend'],
     requireAsset: [
       { 
         type: "Laptop", 
@@ -534,6 +552,7 @@ const tasks = [
     preceedingTasks: [4, 13],
     startTime: null,
     endTime: null,
+    tags: ['frontend', 'backend'],
     requireAsset: [
       {
         type: "Laptop",
@@ -547,6 +566,7 @@ const tasks = [
     requireAssign: {
       frontend: 2,
       backend: 1,
+      manual_test: 1
     },
     estimateTime: 6,
     kpiInTask: [
