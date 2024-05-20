@@ -269,7 +269,7 @@ const allTasksInPast = [
     assignee: {
       id: 7
     },
-    evaluatePoint: 0.9
+    evaluatePoint: -1 // For 3 and 16
   },
   {
     id: 15,
@@ -856,7 +856,7 @@ const allTasksInPast = [
   //   project: "",
   //   startTime: new Date(),
   //   endTime: new Date(),
-  //   tags: ['collecting'],
+  //   tags: ['collecting_data'],
   //   requireAssign: {
   //     english: 5
   //   },
@@ -872,7 +872,7 @@ const allTasksInPast = [
     project: "",
     startTime: new Date(),
     endTime: new Date(),
-    tags: ['collecting'],
+    tags: ['collecting_data'],
     requireAssign: {
       english: 5,
       degree: 1
@@ -889,7 +889,7 @@ const allTasksInPast = [
     project: "",
     startTime: new Date(),
     endTime: new Date(),
-    tags: ['collecting'],
+    tags: ['collecting_data'],
     requireAssign: {
       english: 5,
     },
@@ -1054,7 +1054,7 @@ const allTasksInPast = [
     project: "",
     startTime: new Date(),
     endTime: new Date(),
-    tags: ['documents'],
+    tags: ['document'],
     requireAssign: {
       year_of_exp: 2,
       english: 5,
@@ -1071,7 +1071,7 @@ const allTasksInPast = [
     project: "",
     startTime: new Date(),
     endTime: new Date(),
-    tags: ['documents'],
+    tags: ['document'],
     requireAssign: {
       year_of_exp: 2,
       english: 5,
@@ -1090,7 +1090,7 @@ const allTasksInPast = [
     project: "",
     startTime: new Date(),
     endTime: new Date(),
-    tags: ['documents'],
+    tags: ['document'],
     requireAssign: {
       year_of_exp: 2,
       backend: 2,
@@ -1110,7 +1110,7 @@ const allTasksInPast = [
     project: "",
     startTime: new Date(),
     endTime: new Date(),
-    tags: ['documents'],
+    tags: ['document'],
     requireAssign: {
       year_of_exp: 2,
       backend: 2,
@@ -1130,7 +1130,7 @@ const allTasksInPast = [
     project: "",
     startTime: new Date(),
     endTime: new Date(),
-    tags: ['documents'],
+    tags: ['document'],
     requireAssign: {
       year_of_exp: 2,
       backend: 2,
@@ -1150,7 +1150,7 @@ const allTasksInPast = [
   //   project: "",
   //   startTime: new Date(),
   //   endTime: new Date(),
-  //   tags: ['documents'],
+  //   tags: ['document'],
   //   requireAssign: {
   //     year_of_exp: 2,
   //     backend: 2,
@@ -1324,7 +1324,7 @@ const allTasksInPast = [
     assignee: {
       id: 7
     },
-    evaluatePoint: 0.9
+    evaluatePoint: -1
   },
   
   {

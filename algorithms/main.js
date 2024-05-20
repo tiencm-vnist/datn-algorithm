@@ -28,6 +28,7 @@ async function test() {
   job.tasks = topologicalSort(tasks)
   // console.log("job.tasks: ", job.tasks)
   // job.tasks = scheduleTasksWithAsset(job, assets)
+  // console.log("job.tasks: ", job.tasks)
   // console.log("emp: ", employees)
   // const allTasksInPast = require('./taskInPast').allTasksInPast
 
@@ -35,18 +36,18 @@ async function test() {
   const lastKPIs = getLastKPIAndAvailableEmpsInTasks(job.tasks, allTasksInPast, employees)
   // console.log("lastKPIs: ", lastKPIs)
   // job.tasks = getAvailableEmployeesForTasks(job.tasks, employees, lastKPIs)  
-  // job.tasks.forEach(task => {
-  //   console.log(task.id, ": ", task.availableAssignee.map((item) => item.id).join(", "))
-  // });
+  job.tasks.forEach(task => {
+    console.log(task.id, ": ", task.availableAssignee.map((item) => item.id).join(", "))
+  });
 
 
   // return
-  const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 10000, FEs = 0, R = 100, HMS = 60
+  const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 4, Max_FEs = 10000, FEs = 0, R = 100, HMS = 60
 
   const kpiTarget = {
-    'A': { value: 0.9, weight: 0.35 },
-    'B': { value: 0.9, weight: 0.35 },
-    'C': { value: 0.9, weight: 0.3 },
+    'A': { value: 0.88, weight: 0.35 },
+    'B': { value: 0.91, weight: 0.35 },
+    'C': { value: 0.91, weight: 0.3 },
   }
 
   const DLHS_Arguments = {
@@ -60,7 +61,7 @@ async function test() {
 
   const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget, assetHasKPIWeight)
   kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
-  // console.log("kpiTarget: ", kpiOfEmployeesTarget)
+  console.log("kpiTarget: ", kpiOfEmployeesTarget)
 
   job.tasks = scheduleTasksWithAssetAndEmpTasks(job, assets, allTasksOutOfProject)
   // job.tasks.forEach(task => {
@@ -72,7 +73,7 @@ async function test() {
   worksheet.addRow(['ID', 'Task ID', 'Preceeding IDs', 'Available Assignee', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Distance Of KPI', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'KPI A when splits', 'KPI A of Assignee with All Tasks', 'KPI B when splits', 'Total KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks']);
   const start = performance.now()
   let testResult = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
-  for (let i = 1; i < 15; i++) {
+  for (let i = 1; i < 20; i++) {
     const result = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
   
     const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)

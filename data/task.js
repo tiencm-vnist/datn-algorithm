@@ -341,7 +341,7 @@ const tasks = [
     preceedingTasks: [8],
     startTime: null,
     endTime: null,
-    tags: ['collecting'],
+    tags: ['collecting_data'],
     requireAsset: [
       { 
         type: "Pantry", 
@@ -430,7 +430,7 @@ const tasks = [
     preceedingTasks: [],
     startTime: null,
     endTime: null,
-    tags: ['documents'],
+    tags: ['document'],
     requireAsset: [
       { 
         type: "Laptop", 
@@ -459,7 +459,7 @@ const tasks = [
     preceedingTasks: [5],
     startTime: null,
     endTime: null,
-    tags: ['documents'],
+    tags: ['document'],
     requireAsset: [
       { 
         type: "Table", 

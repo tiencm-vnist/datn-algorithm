@@ -354,7 +354,7 @@ function getAvailableTimeForAssetOfTask(task, assets) {
         // Nếu không đủ số lượng
         availableAssets = [...readyToUse]
         const remain = require.number - readyToUse.length;
-        let inUse = assets.inUse.filter(asset => isAssetCompatibleWithRequirement(asset, require)).sort((a, b) => a.costPerHour - b.costPerHour);
+        let inUse = assets.inUse.filter(asset => isAssetCompatibleWithRequirement(asset, require));
         if (inUse?.length && remain <= inUse?.length) {
           // Lấy cả bọn tài nguyên đang được sử dụng ra 
           inUse = inUse.sort((a, b) => {
@@ -615,7 +615,7 @@ function scheduleTasksWithAsset(job, assets) {
   for (const task of sortedTasks) {
     // console.log("currentAsset: ", currentAssets.inUse.length, currentAssets.readyToUse.length, "id task: ", task.id)
     const { taskAssets, availableTime } = getAvailableTimeForAssetOfTask(task, currentAssets);
-    // console.log("available: ", availableTime.getTime())
+    console.log(task.id, "available: ", availableTime)
     // console.log("task: ", task.id)
     // console.log("taskAssets: ", taskAssets)
     // Gán các tài nguyên đã chọn cho task
@@ -972,6 +972,7 @@ function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) 
           return solutionA.falseDuplicate < solutionB.falseDuplicate
         }
       }
+
       let pointA = 0
       let pointB = 0
       let count = 0
@@ -993,11 +994,17 @@ function compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) 
       if (pointA === pointB) {
         const distanceA = solutionA.distanceWithKPIEmployeesTarget
         const distanceB = solutionB.distanceWithKPIEmployeesTarget
+        // return distanceA <= distanceB
 
-        if (solutionA.falseDuplicate === solutionB.falseDuplicate) {
-          return distanceA <= distanceB
-        } else {
+        // if (solutionA.falseDuplicate === solutionB.falseDuplicate) {
+        //   return distanceA <= distanceB
+        // } else {
+        //   return solutionA.falseDuplicate < solutionB.falseDuplicate
+        // }
+        if (Math.abs(distanceA - distanceB) <= 0.001) {
           return solutionA.falseDuplicate < solutionB.falseDuplicate
+        } else {
+          return distanceA < distanceB
         }
 
         if (pointA === count) {

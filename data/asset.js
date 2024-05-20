@@ -20,7 +20,21 @@ const assetAll = [
       level: 2,
     }],
     costPerHour: 2,
-    status: 'ready_to_use',
+    status: 'in_use',
+    usageLogs: [
+      {
+        startDate: new Date('2024-07-01T08:00:00.000Z'),
+        endDate: new Date('2024-07-20T08:00:00.000Z')
+      },
+      {
+        startDate: new Date('2024-07-21T02:00:00.000Z'),
+        endDate: new Date('2024-08-01T08:00:00.000Z')
+      },
+      {
+        startDate: new Date('2024-08-01T02:00:00.000Z'),
+        endDate: new Date('2024-08-10T08:00:00.000Z')
+      },
+    ],
     logs: []
   },
   {
@@ -31,8 +45,22 @@ const assetAll = [
       level: 3,
     }],
     costPerHour: 4.5,
-    status: 'ready_to_use',
-    logs: []
+    status: 'in_use',
+    logs: [],
+    usageLogs: [
+      {
+        startDate: new Date('2024-07-01T01:00:00.000Z'),
+        endDate: new Date('2024-07-13T02:00:00.000Z')
+      },
+      {
+        startDate: new Date('2024-07-13T02:00:00.000Z'),
+        endDate: new Date('2024-07-25T08:00:00.000Z')
+      },
+      {
+        startDate: new Date('2024-07-26T02:00:00.000Z'),
+        endDate: new Date('2024-08-08T08:00:00.000Z')
+      },
+    ],
   },
   {
     id: 4,
@@ -42,7 +70,21 @@ const assetAll = [
       level: 3,
     }],
     costPerHour: 5,
-    status: 'ready_to_use',
+    status: 'in_use',
+    usageLogs: [
+      {
+        startDate: new Date('2024-07-01T08:00:00.000Z'),
+        endDate: new Date('2024-07-15T08:00:00.000Z')
+      },
+      {
+        startDate: new Date('2024-07-16T01:00:00.000Z'),
+        endDate: new Date('2024-08-18T08:00:00.000Z')
+      },
+      {
+        startDate: new Date('2024-08-19T01:00:00.000Z'),
+        endDate: new Date('2024-09-24T08:00:00.000Z')
+      },
+    ],
     logs: []
   },
   {
@@ -64,14 +106,22 @@ const assetAll = [
       level: 4,
     }],
     costPerHour: 0.5,
-    status: 'in_use',
+    status: 'ready_to_use',
     logs: [],
-    usageLogs: [
-      {
-        startDate: new Date('2024-04-01T05:00:00.000Z'),
-        endDate: new Date('2024-05-12T05:00:00.000Z')
-      }
-    ]
+    // usageLogs: [
+    //   {
+    //     startDate: new Date('2024-07-01T05:00:00.000Z'),
+    //     endDate: new Date('2024-08-12T05:00:00.000Z')
+    //   },
+    //   {
+    //     startDate: new Date('2024-08-12T05:00:00.000Z'),
+    //     endDate: new Date('2024-08-20T05:00:00.000Z')
+    //   },
+    //   {
+    //     startDate: new Date('2024-08-20T05:00:00.000Z'),
+    //     endDate: new Date('2024-09-20T05:00:00.000Z')
+    //   }
+    // ]
   },
   {
     id: 7,
@@ -103,8 +153,18 @@ const assetAll = [
       level: 3,
     }],
     costPerHour: 2,
-    status: 'ready_to_use',
-    logs: []
+    status: 'in_use',
+    logs: [],
+    usageLogs: [
+      {
+        startDate: new Date('2024-07-01T06:00:00.000Z'),
+        endDate: new Date('2024-08-12T05:00:00.000Z')
+      },
+      {
+        startDate: new Date('2024-08-12T05:00:00.000Z'),
+        endDate: new Date('2024-09-08T05:00:00.000Z')
+      },
+    ]
   },
 ]
 
