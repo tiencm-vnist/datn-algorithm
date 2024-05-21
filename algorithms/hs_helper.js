@@ -1278,13 +1278,16 @@ function getDistanceOfKPIEmployeesTarget_2(kpiOfEmployeesSolution, kpiOfEmployee
   }
 }
 
-function harmonySearch_Base(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, tasks, employees, lastKPIs) {
+function harmonySearch_Base(HS_Arguments, tasks, employees, lastKPIs,  kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight) {
+  
+  const { hmSize, bw, maxIter, HMCR, PAR } = HS_Arguments
   
   // Step 1: init HM
   let HM = [], bestFitnessSolutions = []
 
   for (let i = 0; i < hmSize; i++) {
-    let randomSolution = initRandomHarmonyVector(job.tasks, employees, lastKPIs, kpiOfEmployeesTarget, assetHasKPIWeight)
+    let randomSolution = initRandomHarmonyVector(tasks, employees, lastKPIs, kpiOfEmployeesTarget, assetHasKPIWeight)
+    // console.log("randomSolution: ", randomSolution.kpiAssignment)
     HM.push(randomSolution)
   }
   
@@ -1303,18 +1306,24 @@ function harmonySearch_Base(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmpl
     // } 
     let improviseAssignment = []
     let empAssigned = []
-    let falseAssigneeScore = 0
+    let falseAssigneeScore = 0, falseDuplicate = 0
+    let taskInDuplicate = []
 
-    const bestSolutionAssignment = bestSolution.assignment
+    // const bestSolutionAssignment = bestSolution.assignment
 
     for (let i = 0; i < tasks.length; i++) {
       const task = tasks[i]
-      const { availableAssignee, assignee, assets } = task
+      const { availableAssignee, assets } = task
+      const { startTime, endTime } = task
   
       let randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
-
+      let availableCheckDuplicate = availableAssignee.filter((employee) => !checkDuplicate(improviseAssignment, employee, startTime, endTime))
+        if (availableCheckDuplicate?.length) {
+          randomAssignee = availableCheckDuplicate[Math.floor(Math.random() * availableCheckDuplicate.length)]
+        } 
       if (Math.random() < HMCR) {
-        randomAssignee = bestSolutionAssignment.find((item) => item.task.id === task.id).assignee
+        let randomAssignment = HM[Math.floor(Math.random() * HM?.length)].assignment
+        randomAssignee = randomAssignment.find((item) => item.task.id === task.id).assignee
         if (Math.random() < PAR || !isFitnessSolution) {
           let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
           randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
@@ -1324,6 +1333,10 @@ function harmonySearch_Base(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmpl
 
       // Do for assets: TODO
 
+      if (checkDuplicate(improviseAssignment, randomAssignee, startTime, endTime)) {
+        falseDuplicate++
+        taskInDuplicate.push(task.id)
+      }
       if (!empAssigned.includes(randomAssignee.id)) {
         empAssigned.push(randomAssignee.id)
       }
@@ -1340,12 +1353,12 @@ function harmonySearch_Base(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmpl
     // total False assets: TODO
 
     // get total KPI
-    const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs)
+    const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs, assetHasKPIWeight)
 
     // get total Cost
     const totalCost = getTotalCost(improviseAssignment)
 
-    const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs)
+    const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs, assetHasKPIWeight)
 
     // get euclid distance kpi target
     // function get distance
@@ -1357,7 +1370,9 @@ function harmonySearch_Base(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmpl
       totalCost,
       kpiAssignment,
       kpiOfEmployees,
-      distanceWithKPIEmployeesTarget
+      distanceWithKPIEmployeesTarget,
+      falseDuplicate,
+      taskInDuplicate
     }
 
     // STEP 3
@@ -1367,10 +1382,7 @@ function harmonySearch_Base(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmpl
     }
   }
 
-  return {
-    bestFind: HM[0],
-    bestFitnessSolutions
-  }
+  return HM[0]
 }
 
 
@@ -1639,14 +1651,6 @@ function regroupSubHMs(subHMs, mSubs) {
   return newSubHMs;
 }
 
-// function newHMFromSubs(subHMs) {
-//   let newHM = []
-//   for (let i = 0; i < subHMs?.length; i++) {
-//     let bestLocal = findBestLocalSolution(subHMs[i])
-//     newHM.push(bestLocal)
-//   }
-//   return newHM
-// }
 
 function newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget) {
   let newHM = []
@@ -1654,9 +1658,8 @@ function newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget) {
     let bestLocal = findBestAndWorstHarmonySolution(subHMs[i], kpiTarget, kpiOfEmployeesTarget).best
     newHM.push(bestLocal)
     subHMs[i].sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) ? -1 : 1)
-    // const someBestLocal = subHMs[i].slice(1, 5)
-    const SizeToPush = 4
-    for (let j = 0; j < SizeToPush; j++) {
+    const SizeToPush = subHMs?.length - 1
+    for (let j = 1; j < SizeToPush + 1; j++) {
       newHM.push(subHMs[i][j])
     }
   }
@@ -1688,7 +1691,382 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs, kpiTarget, kpiOfEmploy
       // Step 5.1: Select HMCR, PAR, and determine BW
       let { HMCR, PAR } = selectRandomFromPSL(PSL)
       let bw = determineBW(BW_max, BW_min, FEs, Max_FEs)
-      // console.log("BW: ", BW)
+      // console.log("BW: ", bw)
+
+      // Step 5.2: Improvise a new harmony vector
+      const bestSolution = findBestAndWorstHarmonySolution(subHM, kpiTarget, kpiOfEmployeesTarget).best
+      const worstSolution = findBestAndWorstHarmonySolution(subHM, kpiTarget, kpiOfEmployeesTarget).worst
+      let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
+      // if (isFitnessSolution) {
+      //   // console.log("vao day: ", isFitnessSolution)
+      //   if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+      //     bestFitnessSolutions.push(bestSolution)
+      //   }
+      // } 
+
+      let improviseAssignment = []
+      let empAssigned = []
+      let falseAssigneeScore = 0, falseDuplicate = 0
+      let taskInDuplicate = []
+      // let falseAssetScore = 0
+      const bestSolutionAssignment = bestSolution.assignment
+      tasks.forEach((task) => {
+        const { availableAssignee, assets } = task
+        const { startTime, endTime } = task 
+
+        let randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
+        let availableCheckDuplicate = availableAssignee.filter((employee) => !checkDuplicate(improviseAssignment, employee, startTime, endTime))
+        if (availableCheckDuplicate?.length) {
+          randomAssignee = availableCheckDuplicate[Math.floor(Math.random() * availableCheckDuplicate.length)]
+        } 
+        if (Math.random() < HMCR) {
+          randomAssignee = bestSolutionAssignment.find((item) => item.task.id === task.id).assignee
+
+          if (Math.random() < PAR || !isFitnessSolution) {
+            if (availableCheckDuplicate?.length) {
+              let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+              randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableCheckDuplicate.length
+              randomAssignee = availableCheckDuplicate[randomAssigneeIndex]
+            } else {
+              let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+              randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
+              randomAssignee = availableAssignee[randomAssigneeIndex]
+            }
+
+          }
+        }
+        if (checkDuplicate(improviseAssignment, randomAssignee, startTime, endTime)) {
+          falseDuplicate++
+          taskInDuplicate.push(task.id)
+        }
+
+
+        // Do for assets: TODO
+        if (!empAssigned.includes(randomAssignee.id)) {
+          empAssigned.push(randomAssignee.id)
+        }
+        
+        improviseAssignment.push({
+          task,
+          assignee: randomAssignee,
+          assets: assets
+        })
+      })
+
+      // total False
+      falseAssigneeScore = employees.length - empAssigned.length
+      // total False assets: TODO
+
+      // get total KPI
+      const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs, assetHasKPIWeight)
+
+      // get total Cost
+      const totalCost = getTotalCost(improviseAssignment)
+
+      // getKPI of Employees 
+      const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs, assetHasKPIWeight)
+
+      //  get distance
+      const distanceWithKPIEmployeesTarget = getDistanceOfKPIEmployeesTarget(kpiOfEmployees, kpiOfEmployeesTarget)
+
+      const improviseSolution = {
+        assignment: improviseAssignment,
+        falseAssigneeScore,
+        totalCost,
+        kpiAssignment,
+        kpiOfEmployees,
+        distanceWithKPIEmployeesTarget,
+        falseDuplicate,
+        taskInDuplicate
+      }
+
+      FEs++;
+
+      // Step 5.3: Update sub-HM and record HMCR and PAR into WPSL if X_new is better than X_w
+      // console.log("worstSolution: ", worstSolution.kpiAssignment)
+      const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, kpiOfEmployeesTarget) 
+      if (checkIsImproviseSolution) {
+        updateHarmonyMemory(subHM, improviseSolution)
+        
+        // record to WPLS
+        WPSL.push({
+          HMCR, PAR
+        })
+      }
+
+
+      // Step 5.4: Refill PSL if empty
+      if (PSL?.length === 0) {
+        refillPSL(PSL, WPSL, lastPSL, PSLSize);
+        // console.log("PSL: ", PSL)
+      }
+    
+      // Step 6: Check termination conditions
+      if (FEs !== 0 && FEs % R === 0) {
+        // console.log("vao day")
+        // console.log("subHMs L: ", subHMs[0].length)
+        subHMs = regroupSubHMs(subHMs, numOfSub);
+        // console.log("subHMs L: ", subHMs[0].length)
+      }
+    }
+
+  }
+
+  // Step 7: 
+  let newHM = newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget)
+  while (FEs < Max_FEs) {
+    let { HMCR, PAR } = selectRandomFromPSL(PSL)
+    let bw = determineBW(BW_max, BW_min, FEs, Max_FEs)
+
+    const bestSolution = findBestAndWorstHarmonySolution(newHM, kpiTarget, kpiOfEmployeesTarget).best
+    const worstSolution = findBestAndWorstHarmonySolution(newHM, kpiTarget, kpiOfEmployeesTarget).worst
+    let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
+    // if (isFitnessSolution) {
+    //   if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+    //     bestFitnessSolutions.push(bestSolution)
+    //   }
+    // } 
+
+    let improviseAssignment = []
+    let empAssigned = []
+    let falseAssigneeScore = 0
+    let falseAssetScore = 0, falseDuplicate = 0
+    let taskInDuplicate = []
+    const bestSolutionAssignment = bestSolution.assignment
+    tasks.forEach((task) => {
+      let randomAssignee = {}
+      const { availableAssignee, assets } = task
+      const { startTime, endTime } = task 
+
+      let availableCheckDuplicate = availableAssignee.filter((employee) => !checkDuplicate(improviseAssignment, employee, startTime, endTime))
+      if (availableCheckDuplicate?.length) {
+        randomAssignee = availableCheckDuplicate[Math.floor(Math.random() * availableCheckDuplicate.length)]
+      } else {
+        randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
+      }
+
+      if (Math.random() < HMCR) {
+        randomAssignee = bestSolutionAssignment.find((item) => item.task.id === task.id).assignee
+
+        if (Math.random() < PAR || !isFitnessSolution) {
+          if (availableCheckDuplicate?.length) {
+            let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+            randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableCheckDuplicate.length
+            randomAssignee = availableCheckDuplicate[randomAssigneeIndex]
+          } else {
+            let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+            randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
+            randomAssignee = availableAssignee[randomAssigneeIndex]
+          }
+        }
+      }
+      if (checkDuplicate(improviseAssignment, randomAssignee, startTime, endTime)) {
+        falseDuplicate++
+        taskInDuplicate.push(task.id)
+      }
+
+      // Do for assets: TODO
+      if (!empAssigned.includes(randomAssignee.id)) {
+        empAssigned.push(randomAssignee.id)
+      }
+      
+      improviseAssignment.push({
+        task,
+        assignee: randomAssignee,
+        assets: assets
+      })
+    })
+
+    // total False
+    falseAssigneeScore = employees.length - empAssigned.length
+    // total False assets: TODO
+
+    // get total KPI
+    const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs, assetHasKPIWeight)
+
+    // get total Cost
+    const totalCost = getTotalCost(improviseAssignment)
+
+    // getKPI of Employees 
+      const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs, assetHasKPIWeight)
+
+    //  get distance
+    const distanceWithKPIEmployeesTarget = getDistanceOfKPIEmployeesTarget(kpiOfEmployees, kpiOfEmployeesTarget)
+
+    const improviseSolution = {
+      assignment: improviseAssignment,
+      // falseAssetScore, TODO
+      falseAssigneeScore,
+      totalCost,
+      kpiAssignment,
+      kpiOfEmployees,
+      distanceWithKPIEmployeesTarget,
+      falseDuplicate,
+      taskInDuplicate
+    }
+
+    // console.log("improveSolution: ", improviseSolution.kpiAssignment)
+    // console.log("worst: ", worstSolution.kpiAssignment)
+
+    const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, kpiOfEmployeesTarget) 
+    if (checkIsImproviseSolution) {
+      updateHarmonyMemory(newHM, improviseSolution)
+    }
+    FEs++;
+    // Step 5.4: Refill PSL if empty
+    if (PSL.length === 0) {
+      refillPSL(PSL, WPSL, lastPSL, PSLSize);
+    }
+  }
+  return newHM[0]
+}
+
+function DLHS_2(DLHS_Arguments, tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight) {
+  const { HMS, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs } = DLHS_Arguments
+  let FEs = 0
+
+  // Step 2: Initialize HM and PSL
+  let PSL = []
+  let HM = []
+  let WPSL = []
+  initHM(HM, HMS, tasks, employees, lastKPIs, kpiOfEmployeesTarget, assetHasKPIWeight)
+  initPSL(PSL, PSLSize)
+  let lastPSL = PSL
+  let bestFitnessSolutions = []
+  console.log("HM: ", HM.map((item) => item.distanceWithKPIEmployeesTarget))
+
+
+  for (let i = FEs; i < Max_FEs * 0.4; i++) {
+    let HMCR = 0.95, PAR = 0.3, bw = 1
+    // let bw = determineBW(BW_max, BW_min, FEs, Max_FEs)
+    // console.log("BW: ", bw)
+
+    // Step 5.2: Improvise a new harmony vector
+    const bestSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget).best
+    const worstSolution = findBestAndWorstHarmonySolution(HM, kpiTarget, kpiOfEmployeesTarget).worst
+    let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
+    // if (isFitnessSolution) {
+    //   // console.log("vao day: ", isFitnessSolution)
+    //   if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+    //     bestFitnessSolutions.push(bestSolution)
+    //   }
+    // } 
+
+    let improviseAssignment = []
+    let empAssigned = []
+    let falseAssigneeScore = 0, falseDuplicate = 0
+    let taskInDuplicate = []
+    // let falseAssetScore = 0
+    const bestSolutionAssignment = bestSolution.assignment
+    tasks.forEach((task) => {
+      const { availableAssignee, assets } = task
+      const { startTime, endTime } = task 
+
+      let randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
+      let availableCheckDuplicate = availableAssignee.filter((employee) => !checkDuplicate(improviseAssignment, employee, startTime, endTime))
+      if (availableCheckDuplicate?.length) {
+        randomAssignee = availableCheckDuplicate[Math.floor(Math.random() * availableCheckDuplicate.length)]
+      } 
+      if (Math.random() < HMCR) {
+        let randomSolution = HM[Math.floor(Math.random() * HM.length)]
+        let randomAssignment = randomSolution.assignment
+        randomAssignee = randomAssignment.find((item) => item.task.id === task.id).assignee
+
+        if (Math.random() < PAR || !isFitnessSolution) {
+          if (availableCheckDuplicate?.length) {
+            let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+            randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableCheckDuplicate.length
+            randomAssignee = availableCheckDuplicate[randomAssigneeIndex]
+          } else {
+            let randomAssigneeIndex = availableAssignee.findIndex((item) => item.id === randomAssignee.id)
+            randomAssigneeIndex = Math.floor(Math.random() * bw + randomAssigneeIndex) % availableAssignee.length
+            randomAssignee = availableAssignee[randomAssigneeIndex]
+          }
+
+        }
+      }
+      if (checkDuplicate(improviseAssignment, randomAssignee, startTime, endTime)) {
+        falseDuplicate++
+        taskInDuplicate.push(task.id)
+      }
+
+
+      // Do for assets: TODO
+      if (!empAssigned.includes(randomAssignee.id)) {
+        empAssigned.push(randomAssignee.id)
+      }
+      
+      improviseAssignment.push({
+        task,
+        assignee: randomAssignee,
+        assets: assets
+      })
+    })
+
+    // total False
+    falseAssigneeScore = employees.length - empAssigned.length
+    // total False assets: TODO
+
+    // get total KPI
+    const kpiAssignment = getTotalKpi(improviseAssignment, lastKPIs, assetHasKPIWeight)
+
+    // get total Cost
+    const totalCost = getTotalCost(improviseAssignment)
+
+    // getKPI of Employees 
+    const kpiOfEmployees = getKpiOfEmployees(improviseAssignment, employees, lastKPIs, assetHasKPIWeight)
+
+    //  get distance
+    const distanceWithKPIEmployeesTarget = getDistanceOfKPIEmployeesTarget(kpiOfEmployees, kpiOfEmployeesTarget)
+
+    const improviseSolution = {
+      assignment: improviseAssignment,
+      falseAssigneeScore,
+      totalCost,
+      kpiAssignment,
+      kpiOfEmployees,
+      distanceWithKPIEmployeesTarget,
+      falseDuplicate,
+      taskInDuplicate
+    }
+
+    FEs++;
+
+    // Step 5.3: Update sub-HM and record HMCR and PAR into WPSL if X_new is better than X_w
+    // console.log("worstSolution: ", worstSolution.kpiAssignment)
+    const checkIsImproviseSolution = compareSolution(improviseSolution, worstSolution, kpiTarget, kpiOfEmployeesTarget) 
+    if (checkIsImproviseSolution) {
+      updateHarmonyMemory(HM, improviseSolution)
+      // record to WPLS
+      // WPSL.push({
+      //   HMCR, PAR
+      // })
+    }
+
+
+    // Step 5.4: Refill PSL if empty
+    // if (PSL?.length === 0) {
+    //   refillPSL(PSL, WPSL, lastPSL, PSLSize);
+    //   // console.log("PSL: ", PSL)
+    // }
+  }
+
+  console.log("HM: update", HM.map((item) => item.distanceWithKPIEmployeesTarget))
+
+  // Step 3: Main loop
+  // Step 4: Randomly divide HM into m sub-HMs with the same size
+  let subHMs = divideHM(HM, numOfSub)
+  // console.log("subHM: ", subHMs.map((item) => item.map((itemCon) => itemCon.distanceWithKPIEmployeesTarget).join(", ")))
+
+  for (let i = FEs; i < 0.9 * Max_FEs; i++) {
+    
+    // Step 5: For each sub-HM
+    for (let subHM of subHMs) {
+      // console.log("FE: ", FEs)
+      // Step 5.1: Select HMCR, PAR, and determine BW
+      let { HMCR, PAR } = selectRandomFromPSL(PSL)
+      let bw = determineBW(BW_max, BW_min, FEs, Max_FEs)
+      // console.log("BW: ", bw)
 
       // Step 5.2: Improvise a new harmony vector
       const bestSolution = findBestAndWorstHarmonySolution(subHM, kpiTarget, kpiOfEmployeesTarget).best
@@ -1811,7 +2189,7 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs, kpiTarget, kpiOfEmploy
 
   // Step 7: 
   let newHM = newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget)
-  while (FEs < Max_FEs) {
+  for (let i = FEs; i < Max_FEs; i++) {
     let { HMCR, PAR } = selectRandomFromPSL(PSL)
     let bw = determineBW(BW_max, BW_min, FEs, Max_FEs)
 

@@ -3,7 +3,7 @@ const fs = require('fs');
 const ExcelJS = require('exceljs');
 
 const { topologicalSort } = require('../helper/index');
-const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, checkIsFitnessSolution, compareSolution, reScheduleTasks, getKpiOfEmployees, DLHS, getTimeForProject, getDistanceOfKPIEmployeesTarget_2, getAvailableEmployeesWithCheckConflict, scheduleTasksWithAssetAndEmpTasks, getLastKPIAndAvailableEmpsInTasks } = require('./hs_helper');
+const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, checkIsFitnessSolution, compareSolution, reScheduleTasks, getKpiOfEmployees, DLHS, getTimeForProject, getDistanceOfKPIEmployeesTarget_2, getAvailableEmployeesWithCheckConflict, scheduleTasksWithAssetAndEmpTasks, getLastKPIAndAvailableEmpsInTasks, harmonySearch_Base } = require('./hs_helper');
 const { kMeansWithEmployees, splitKPIToEmployeesByKMeans, findBestMiniKPIOfTasks, reSplitKPIOfEmployees } = require('../helper/k-mean.helper');
 const { allTasksOutOfProject } = require('../data/taskOutofProject');
 const { allTasksInPast } = require('../data/taskInPast');
@@ -11,7 +11,7 @@ const { allTasksInPast } = require('../data/taskInPast');
 
 
 
-const proposalForProject = (job, allTasksInPast, allTasksOutOfProject, DLHS_Arguments, assetHasKPIWeight) => {
+const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, DLHS_Arguments, assetHasKPIWeight) => {
   allTasksOutOfProject.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
 
   const {
@@ -58,7 +58,76 @@ const proposalForProject = (job, allTasksInPast, allTasksOutOfProject, DLHS_Argu
   let testResult = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
   for (let i = 1; i < 20; i++) {
     const result = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
+    console.log("result: ", result.kpiAssignment, result.distanceWithKPIEmployeesTarget)
+    const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
+    if (checkIsFitnessSolutionResult) {
+      testResult = result
+      break
+    }
+    if (!compareSolution(testResult, result, kpiTarget, kpiOfEmployeesTarget)) {
+      testResult = result
+    }
+  }
+
+  // Step 3
+  if (testResult?.falseDuplicate) {
+    console.log("vào đây")
+    reScheduleTasks(testResult.assignment, assets, allTasksOutOfProject)
+    console.log("day works: ", getTimeForProject(testResult.assignment))
+  }
+
+  return testResult
+}
+
+const proposalForProjectWithHS_Base = (job, allTasksInPast, allTasksOutOfProject, HS_Arguments, assetHasKPIWeight) => {
+  allTasksOutOfProject.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+
+  const {
+    employees,
+    assets,
+    kpiTarget
+  } = job
   
+
+  // Step 1
+
+
+  // Step 1.1
+  job.tasks = topologicalSort(job.tasks)
+
+  // pre-processing KPI
+  const lastKPIs = getLastKPIAndAvailableEmpsInTasks(job.tasks, allTasksInPast, employees)
+  console.log("job.task: ", job.tasks.forEach(task => {
+    console.log(task.id, task.availableAssignee.map((emp) => emp.id).join(", "))
+  }))
+
+
+  // Step 1.2
+  let kpiOfEmployeesTarget = splitKPIToEmployeesByKMeans(job.tasks, employees, kpiTarget, assetHasKPIWeight)
+  const minimumKpi = findBestMiniKPIOfTasks(job.tasks, kpiTarget, assetHasKPIWeight)
+  kpiOfEmployeesTarget = reSplitKPIOfEmployees(minimumKpi, kpiOfEmployeesTarget)
+
+
+  job.tasks = scheduleTasksWithAssetAndEmpTasks(job, assets, allTasksOutOfProject)
+  let lastestEndTime = new Date(0)
+  for (let i = 0; i < job.tasks?.length; i++) {
+    const task = job.tasks[i]
+    const endTime = new Date(task?.endTime)
+    if (lastestEndTime < endTime) {
+      lastestEndTime = endTime
+    }
+    
+  }
+  if (new Date(lastestEndTime) > new Date(job.endTime)) {
+    throw Error("Không thể tìm được phương án phân bổ để thỏa mãn thời gian của dự án! Hãy điều chỉnh lại tài nguyên và thời gian dự kiến!")
+  }
+
+  // Step 2
+  let testResult = harmonySearch_Base(HS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
+  for (let i = 1; i < 20; i++) {
+    const result = harmonySearch_Base(HS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
+  
+    console.log("result.kpi: ", result.kpiAssignment, result.distanceWithKPIEmployeesTarget)
     const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
     if (checkIsFitnessSolutionResult) {
       testResult = result
@@ -80,7 +149,7 @@ const proposalForProject = (job, allTasksInPast, allTasksOutOfProject, DLHS_Argu
 }
 
 async function test() {
-  const { project, assetHasKPIWeight, DLHS_Arguments } = require('./input')
+  const { project, assetHasKPIWeight, DLHS_Arguments, HS_Arguments } = require('./input')
 
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Task KPIs');
@@ -91,7 +160,7 @@ async function test() {
   // Add headers
   worksheet.addRow(['ID', 'Task ID', 'Preceeding IDs', 'Available Assignee', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Distance Of KPI', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'KPI A when splits', 'KPI A of Assignee with All Tasks', 'KPI B when splits', 'Total KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks']);
   const start = performance.now()
-  let testResult = proposalForProject(project, allTasksInPast, allTasksOutOfProject, DLHS_Arguments, assetHasKPIWeight)
+  let testResult = proposalForProjectWithDLHS(project, allTasksInPast, allTasksOutOfProject, DLHS_Arguments, assetHasKPIWeight)
   const end = performance.now()
 
   console.log("Cost: ", testResult.totalCost)
