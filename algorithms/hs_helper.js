@@ -327,28 +327,10 @@ function getAvailableTimeForAssetOfTask(task, assets) {
       // Nếu có tài nguyên yêu cầu và đủ số lượng => trả về timeavailable = 0 
       if (readyToUse.length >= require.number) {
         availableTimes.push(new Date(0));
-        // readyToUse = readyToUse.sort((a, b) => {
-        //   const usageLogsA = a?.usageLogs ? a?.usageLogs.sort((log1, log2) => new Date(log2.endDate) - new Date(log1.endDate))[0] : new Date(0)
-        //   const usageLogsB = b?.usageLogs ? b?.usageLogs.sort((log1, log2) => new Date(log2.endDate) - new Date(log1.endDate))[0] : new Date(0)
-        //   console.log("usageLogsA: ", usageLogsA)
-        //   console.log("usageLogsB: ", usageLogsB)
-
-        //   return usageLogsA - usageLogsB
-        // })
-        // let logsReadyToUse = readyToUse.filter((item) => item?.usageLogs)
-        // if (logsReadyToUse?.length) {
-        //   logsReadyToUse = logsReadyToUse.map(_ => _.usageLogs.sort((a, b) => new Date(b.endDate) - new Date(a.endDate))[0].endDate).sort((a, b) => new Date(b) - new Date(a));
-        //   availableTimes.push(new Date(logsReadyToUse[0]))
-        // }
-        // console.log("avaiTime in ready: ", availableTimes, "task: ", task.id)
         
         for (let i = 0; i < require.number; i++) {
           availableAssets.push(readyToUse[i])
         }
-        // return {
-        //   taskAssets: availableAssets,
-        //   availableTime: new Date(0)
-        // }
       }
       else {
         // Nếu không đủ số lượng
@@ -705,7 +687,7 @@ function scheduleTasksWithAssetAndEmpTasks(job, assets, allTasksOutOfProject) {
   for (const task of sortedTasks) {
     // console.log("currentAsset: ", currentAssets.inUse.length, currentAssets.readyToUse.length, "id task: ", task.id)
     const { taskAssets, availableTime } = getAvailableTimeForAssetOfTask(task, currentAssets);
-    // console.log("available: ", availableTime.getTime())
+    // console.log("available 1: ", availableTime)
     // console.log("task: ", task.id)
     // console.log("taskAssets: ", taskAssets)
     // Gán các tài nguyên đã chọn cho task
@@ -716,7 +698,7 @@ function scheduleTasksWithAssetAndEmpTasks(job, assets, allTasksOutOfProject) {
     const preceedingTasks = task.preceedingTasks.map(id => job.tasks.find(t => t.id === id));
     if (preceedingTasks?.length > 0 ) {
       const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
-
+      // console.log("maxEndTimeOfPreceedingTasks 1: ", new Date(maxEndTimeOfPreceedingTasks))
       // Tìm thời gian bắt đầu cho nhiệm vụ sau khi tất cả các nhiệm vụ tiền điều kiện của nó đã hoàn thành và tài nguyên cần được sử dụng rảnh rỗi
       task.startTime = new Date(Math.max(availableTime, maxEndTimeOfPreceedingTasks));
     } else {
@@ -741,7 +723,7 @@ function scheduleTasksWithAssetAndEmpTasks(job, assets, allTasksOutOfProject) {
         });
       });
 
-      if ((maxLength <= 3 && availableAssignees.length == maxLength) || (maxLength > 3 &&  availableAssignees?.length >= maxLength - 1) || availableAssignees?.length >= 4) {
+      if (availableAssignees?.length > 1 || (maxLength <= 3 && availableAssignees.length == maxLength) || (maxLength > 3 &&  availableAssignees?.length >= maxLength - 1) || availableAssignees?.length >= 4) {
         task.availableAssignee = availableAssignees;
         break;
       } else {
@@ -796,7 +778,6 @@ function getKpiOfEmployees(assignment, employees, lastKPIs, assetHasKPIWeight = 
         } else {
           kpiOfEmployee[id][type] += kpiValue * weight
         }
-        // kpiOfEmployee[id]['total'] += kpiValue * weight * KPI_TYPES[type].weight
       })
     }
   }
@@ -888,6 +869,8 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, kpiOfEmployeesTarge
   const randomAssignment = []
   const empAssigned = []
   let falseAssigneeScore = 0, kpiAssignment = {}, totalCost = 0, falseDuplicate = 0
+  let taskInDuplicate = []
+
   for (let i = 0; i < tasks.length; i++) {
     let assignEmployee = {}
     const task = tasks[i]
@@ -900,6 +883,7 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, kpiOfEmployeesTarge
     } else {
       assignEmployee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
       falseDuplicate++;
+      taskInDuplicate.push(task.id)
     }
 
     // TODO: code for available assets
@@ -937,7 +921,8 @@ function initRandomHarmonyVector(tasks, employees, lastKPIs, kpiOfEmployeesTarge
     kpiAssignment,
     kpiOfEmployees,
     distanceWithKPIEmployeesTarget,
-    falseDuplicate
+    falseDuplicate,
+    taskInDuplicate
   }
   return randomHarmonyVector
 }
@@ -1120,8 +1105,27 @@ function isHaveSameSolution(bestFitnessSolutions, currentBestSolution, ratio = 0
 }
 
 
-function reScheduleTasks(assignment, assets) {
-  // console.log("vaod=f đay")
+function reScheduleTasks(assignment, assets, allTasksOutOfProject) {
+  // Làm việc với 1 assignmentTemp
+  const assignmentTemp = []
+  for (let i = 0; i < assignment.length; i++) {
+    const { task, assignee, assets } = assignment[i]
+    const { startTime, endTime, estimateTime, preceedingTasks } = task
+    assignmentTemp.push({
+      task: {
+        startTime,
+        endTime,
+        preceedingTasks,
+        estimateTime,
+      },
+      assets,
+      assignee
+    })
+  }
+  assignmentTemp[0].task.startTime = new Date('2024-01-01')
+  console.log("vaod=f đay: ", assignmentTemp[0].task.startTime)
+  console.log("vao day 2: ", assignment[0].task.startTime)
+
   let currentTime = assignment[0].task.startTime
   assignment.sort((itemA, itemB) => new Date(itemA.task.endTime) - new Date(itemB.task.endTime))
   assignment.forEach(({ task }) => {
@@ -1138,10 +1142,10 @@ function reScheduleTasks(assignment, assets) {
     const remainHour = (task.estimateTime - numDay) * DAY_WORK_HOURS;
 
     const preceedingTasks = task.preceedingTasks.map(id => assignment.find((item) => item.task.id === id).task)
+    const timeAvailableForAsset = getAvailableTimeForAssetOfTask(task, assets).availableTime
+    task.startTime = new Date(Math.max(startTime, timeAvailableForAsset));
     if (preceedingTasks?.length > 0) {
       const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
-      const timeAvailableForAsset = getAvailableTimeForAssetOfTask(task, assets)
-      task.startTime = new Date(Math.max(startTime, timeAvailableForAsset, maxEndTimeOfPreceedingTasks));
       task.startTime = new Date(Math.max(startTime, maxEndTimeOfPreceedingTasks));
     }
     if (assignee.id in endTimeSaves && endTimeSaves[assignee.id].getTime() > task.startTime.getTime()) {
@@ -1168,7 +1172,23 @@ function reScheduleTasks(assignment, assets) {
         task.endTime = new Date(task.startTime.getTime() + numDay * 3600 * 1000 * 24 + remainHour * 3600 * 1000);
       }
     }
-    
+
+    // check thêm cả điều kiện về thời gian của thằng nhân viên
+    while (true) {
+      const isAvailable = !allTasksOutOfProject.some(otherTask => {
+        return otherTask.assignee.id === assignee.id &&
+          !(task.endTime <= otherTask.startTime || task.startTime >= otherTask.endTime);
+      })
+
+      if (isAvailable) {
+        break;
+      } else {
+        task.startTime.setHours(task.startTime.getHours() + 1);
+        task.endTime.setHours(task.endTime.getHours() + 1);
+      }
+    }
+
+    task.startTime = reCalculateTimeWorking(task.startTime)
     // ReCalculate Time
     task.endTime = new Date(task.startTime.getTime() + numDay * 3600 * 1000 * 24 + remainHour * 3600 * 1000);
     task.endTime = reCalculateTimeWorking(task.endTime)
@@ -1258,9 +1278,9 @@ function getDistanceOfKPIEmployeesTarget_2(kpiOfEmployeesSolution, kpiOfEmployee
   }
 }
 
-function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, tasks, employees, lastKPIs) {
+function harmonySearch_Base(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmployeesTarget, tasks, employees, lastKPIs) {
   
-  // STep 1: init HM
+  // Step 1: init HM
   let HM = [], bestFitnessSolutions = []
 
   for (let i = 0; i < hmSize; i++) {
@@ -1276,11 +1296,11 @@ function newHarmonySearch(hmSize, maxIter, HMCR, PAR, bw, kpiTarget, kpiOfEmploy
 
     let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
 
-    if (isFitnessSolution) {
-      if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
-        bestFitnessSolutions.push(bestSolution)
-      }
-    } 
+    // if (isFitnessSolution) {
+    //   if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+    //     bestFitnessSolutions.push(bestSolution)
+    //   }
+    // } 
     let improviseAssignment = []
     let empAssigned = []
     let falseAssigneeScore = 0
@@ -1644,8 +1664,7 @@ function newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget) {
 }
 
 
-
-function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight) {
+function DLHS(DLHS_Arguments, tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight) {
   const { HMS, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs } = DLHS_Arguments
   let FEs = 0
 
@@ -1675,16 +1694,17 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfE
       const bestSolution = findBestAndWorstHarmonySolution(subHM, kpiTarget, kpiOfEmployeesTarget).best
       const worstSolution = findBestAndWorstHarmonySolution(subHM, kpiTarget, kpiOfEmployeesTarget).worst
       let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
-      if (isFitnessSolution) {
-        // console.log("vao day: ", isFitnessSolution)
-        if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
-          bestFitnessSolutions.push(bestSolution)
-        }
-      } 
+      // if (isFitnessSolution) {
+      //   // console.log("vao day: ", isFitnessSolution)
+      //   if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+      //     bestFitnessSolutions.push(bestSolution)
+      //   }
+      // } 
 
       let improviseAssignment = []
       let empAssigned = []
       let falseAssigneeScore = 0, falseDuplicate = 0
+      let taskInDuplicate = []
       // let falseAssetScore = 0
       const bestSolutionAssignment = bestSolution.assignment
       tasks.forEach((task) => {
@@ -1714,6 +1734,7 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfE
         }
         if (checkDuplicate(improviseAssignment, randomAssignee, startTime, endTime)) {
           falseDuplicate++
+          taskInDuplicate.push(task.id)
         }
 
 
@@ -1752,7 +1773,8 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfE
         kpiAssignment,
         kpiOfEmployees,
         distanceWithKPIEmployeesTarget,
-        falseDuplicate
+        falseDuplicate,
+        taskInDuplicate
       }
 
       FEs++;
@@ -1796,16 +1818,17 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfE
     const bestSolution = findBestAndWorstHarmonySolution(newHM, kpiTarget, kpiOfEmployeesTarget).best
     const worstSolution = findBestAndWorstHarmonySolution(newHM, kpiTarget, kpiOfEmployeesTarget).worst
     let isFitnessSolution = checkIsFitnessSolution(bestSolution, kpiTarget, kpiOfEmployeesTarget) 
-    if (isFitnessSolution) {
-      if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
-        bestFitnessSolutions.push(bestSolution)
-      }
-    } 
+    // if (isFitnessSolution) {
+    //   if (!isHaveSameSolution(bestFitnessSolutions, bestSolution, 0)) {
+    //     bestFitnessSolutions.push(bestSolution)
+    //   }
+    // } 
 
     let improviseAssignment = []
     let empAssigned = []
     let falseAssigneeScore = 0
     let falseAssetScore = 0, falseDuplicate = 0
+    let taskInDuplicate = []
     const bestSolutionAssignment = bestSolution.assignment
     tasks.forEach((task) => {
       let randomAssignee = {}
@@ -1817,7 +1840,6 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfE
         randomAssignee = availableCheckDuplicate[Math.floor(Math.random() * availableCheckDuplicate.length)]
       } else {
         randomAssignee = availableAssignee[Math.floor(Math.random() * availableAssignee.length)]
-        falseDuplicate++;
       }
 
       if (Math.random() < HMCR) {
@@ -1837,6 +1859,7 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfE
       }
       if (checkDuplicate(improviseAssignment, randomAssignee, startTime, endTime)) {
         falseDuplicate++
+        taskInDuplicate.push(task.id)
       }
 
       // Do for assets: TODO
@@ -1875,7 +1898,8 @@ function DLHS(DLHS_Arguments, tasks, employees, lastKPIs = {}, kpiTarget, kpiOfE
       kpiAssignment,
       kpiOfEmployees,
       distanceWithKPIEmployeesTarget,
-      falseDuplicate
+      falseDuplicate,
+      taskInDuplicate
     }
 
     // console.log("improveSolution: ", improviseSolution.kpiAssignment)
@@ -1910,7 +1934,7 @@ module.exports = {
   // splitKPIOfTaskToEmployees,
   // splitKPIToEmployees,
   getKpiOfEmployees,
-  newHarmonySearch,
+  harmonySearch_Base,
   // fillDataToExcel,
   DLHS,
   getDistanceOfKPIEmployeesTarget,

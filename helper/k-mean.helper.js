@@ -588,7 +588,7 @@ function splitKPIToEmployeesByKMeans(tasks, employees, kpiTarget, assetHasKPIWei
 
   tasks.forEach((task) => {
     const kpiSplitInTask = splitKPIOfTaskToEmployees(task, kpiTarget, clusterData, assetHasKPIWeight)
-    console.log("kpiSplitInTask: ", task.id,  kpiSplitInTask)
+    // console.log("kpiSplitInTask: ", task.id,  kpiSplitInTask)
     for (let employeeId in kpiSplitInTask) {
       for (let key in KPI_TYPES) {
         kpiOfEmployees[employeeId][key] += kpiSplitInTask[employeeId][key]
