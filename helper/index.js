@@ -1,3 +1,4 @@
+const { DAY_WORK_HOURS } = require("../consts/kpi.const");
 const { assets } = require("../data/asset");
 
 function topologicalSort(tasks) {
@@ -138,6 +139,26 @@ function calculateLatestStartTime(jobStartTime, index, currentAssignment, task, 
   return new Date(Math.max(...listEndTimeInThread.concat(prevTaskEndTime)));
 }
 
+function getEndTime(startTime, estimateTime) {
+  let startTimeDate = new Date(startTime)
+  const numDay = Math.floor(estimateTime)
+  const remainHour = (estimateTime = numDay) * DAY_WORK_HOURS
+
+  let endTime = new Date(startTimeDate + numDay * 3600 * 24 + remainHour * 3600)
+  return endTime
+}
+
+function getLastestEndTime(assignment) {
+  let endTime = new Date(0)
+  for (let i = 0; i < assignment.length; i++) {
+    const task = assignment[i].task
+    const taskEndTime = new Date(task.endTime)
+    if (endTime < taskEndTime) {
+      endTime = taskEndTime
+    }
+  }
+  return endTime
+}
 // Tính thời gian hoàn thành muộn nhất các tasks trong job
 function calculateLatestCompletionTime(job) {
   let latestCompletionTime = job.startTime;
@@ -425,5 +446,7 @@ module.exports = {
   assignTasks,
   branchAndBoundEmployee,
   scheduleTasks,
-  scheduleTasksNotParalell
+  scheduleTasksNotParalell,
+  getEndTime,
+  getLastestEndTime
 }
