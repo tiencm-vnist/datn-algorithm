@@ -13,7 +13,7 @@ END_DATE.setFullYear(2024, 10, 1)
 END_DATE.setHours(0, 0, 0, 0)
 
 // For DLHS
-const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 3, Max_FEs = 20000, FEs = 0, R = 100, HMS = 60
+const BW_max = 2, BW_min = 1, PSLSize = 5, numOfSub = 4, Max_FEs = 20000, FEs = 0, R = 100, HMS = 60
 const DLHS_Arguments = {
   HMS, BW_max, BW_min, PSLSize, numOfSub, R, Max_FEs
 }

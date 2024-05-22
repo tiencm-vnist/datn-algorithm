@@ -1769,7 +1769,7 @@ function newHMFromSubs(subHMs, kpiTarget, kpiOfEmployeesTarget) {
     let bestLocal = findBestAndWorstHarmonySolution(subHMs[i], kpiTarget, kpiOfEmployeesTarget).best
     newHM.push(bestLocal)
     subHMs[i].sort((solutionA, solutionB) => compareSolution(solutionA, solutionB, kpiTarget, kpiOfEmployeesTarget) ? -1 : 1)
-    const SizeToPush = subHMs?.length - 1
+    const SizeToPush = 5
     for (let j = 1; j < SizeToPush + 1; j++) {
       newHM.push(subHMs[i][j])
     }

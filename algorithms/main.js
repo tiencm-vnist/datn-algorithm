@@ -7,6 +7,7 @@ const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, checkIsFitnessSol
 const { kMeansWithEmployees, splitKPIToEmployeesByKMeans, findBestMiniKPIOfTasks, reSplitKPIOfEmployees } = require('../helper/k-mean.helper');
 const { allTasksOutOfProject } = require('../data/taskOutofProject');
 const { allTasksInPast } = require('../data/taskInPast');
+const { tasks } = require('../data/task');
 
 
 
@@ -29,9 +30,9 @@ const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, D
 
   // pre-processing KPI
   const lastKPIs = getLastKPIAndAvailableEmpsInTasks(job.tasks, allTasksInPast, employees)
-  // console.log("job.task: ", job.tasks.forEach(task => {
-  //   console.log(task.id, task.availableAssignee.map((emp) => emp.id).join(", "))
-  // }))
+  console.log("job.task: ", job.tasks.forEach(task => {
+    console.log(task.id, task.availableAssignee.map((emp) => emp.id).join(", "))
+  }))
 
 
   // Step 1.2
@@ -75,6 +76,7 @@ const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, D
     reScheduleTasks(testResult.assignment, assets, allTasksOutOfProject, job.endTime)
     console.log("day works: ", getTimeForProject(testResult.assignment))
   }
+  console.log("cos alpha: ", getDistanceOfKPIEmployeesTarget_2(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
 
   return testResult
 }
@@ -199,15 +201,19 @@ async function test() {
       startTime: task.startTime,
       endTime: task.endTime,
       id: task.id,
-      taskName: task.name,
-      project: "Project Hien tai"
+      name: task.name,
+      project: "Project Hien tai",
+      estimateTime: task?.estimateTime,
+      requireAssign: task?.requireAssign,
+      requireAsset: task?.requireAsset
     })
   }
   for (let key in employeeTimes) {
     const employeeWorks = employeeTimes[key].sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
 
+    worksheet.addRow(['Emp ID', 'Task ID', 'Task name', 'StartTime', 'End Time', 'Task ở đâu', 'Task liên quan', 'point', 'estimate Time'])
     for (let i = 0; i < employeeWorks.length; i++) {
-      worksheet.addRow([key, employeeWorks[i]?.id, employeeWorks[i].startTime, employeeWorks[i].endTime, employeeWorks[i]?.project ? employeeWorks[i]?.project : employeeWorks[i]?.status ? "Project QK" : "Project outof"])
+      worksheet.addRow([key, employeeWorks[i]?.id, employeeWorks[i]?.name, employeeWorks[i].startTime, employeeWorks[i].endTime, employeeWorks[i]?.project ? employeeWorks[i]?.project : employeeWorks[i]?.status ? "Project QK" : "Project outof", employeeWorks[i]?.taskLq, employeeWorks[i]?.evaluatePoint === -1 ? "fail" : employeeWorks[i]?.evaluatePoint, employeeWorks[i]?.estimateTime ? employeeWorks[i]?.estimateTime : employeeWorks[i]?.taskLq, JSON.stringify(employeeWorks[i]?.requireAssign), JSON.stringify(employeeWorks[i]?.requireAsset)])
     }
   }
 
