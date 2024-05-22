@@ -1,7 +1,8 @@
 const tasks = [
   {
     id: 1,
-    name: "A1",
+    name: "Phân tích yêu cầu khách hàng",
+    code: "A1",
     preceedingTasks: [14],
     startTime: null,
     endTime: null,
@@ -41,7 +42,8 @@ const tasks = [
   },
   {
     id: 2,
-    name: "A21",
+    code: "A21",
+    name: "Dựng codebase React-NodeJS",
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
@@ -56,23 +58,7 @@ const tasks = [
     ],
     tags: ['backend', 'frontend'],
     estimateTime: 7,
-    // requireAssign: {
-    //   degree: {
-    //     name: "Bachelor",
-    //     value: 2,
-    //   },
-    //   skills: [
-    //     { name: "Backend", value: 3},
-    //     { name: "Frontend", value: 1},
-    //     { name: "Docker", value: 1}
-    //   ],
-    //   yearOfExp: {
-    //     name: 1,
-    //     value: 1
-    //   }
-    // },
     requireAssign: {
-      // degree: 2,
       backend: 2,
       frontend: 1,
       docker: 1,
@@ -88,7 +74,8 @@ const tasks = [
   },
   {
     id: 3,
-    name: "A22",
+    code: "A22",
+    name: "Dựng trang phân bổ nguồn lực dự án",
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
@@ -105,11 +92,6 @@ const tasks = [
     requireAssign: {
       degree: 2,
       frontend: 2,
-      // ],
-      // yearOfExp: {
-      //   name: 1,
-      //   value: 1
-      // }
     },
     estimateTime: 6,
     kpiInTask: [
@@ -122,7 +104,8 @@ const tasks = [
   },
   {
     id: 4,
-    name: "A23",
+    code: "A23",
+    name: "Dựng giao diện module quản lý thẻ",
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
@@ -137,7 +120,6 @@ const tasks = [
       },
     ],
     requireAssign: {
-      // degree: 2,
       backend: 1,
       frontend: 2,
       year_of_exp: 1
@@ -153,7 +135,8 @@ const tasks = [
   },
   {
     id: 5,
-    name: "A3",
+    code: "A3",
+    name: "Triển khai hệ thống DXClan lên server",
     preceedingTasks: [12],
     startTime: null,
     endTime: null,
@@ -168,7 +151,6 @@ const tasks = [
       },
     ],
     requireAssign: {
-      // degree: 2,
       ci_cd: 2,
       docker: 2,
       year_of_exp: 1
@@ -184,7 +166,8 @@ const tasks = [
   },
   {
     id: 6,
-    name: "B1",
+    code: "B1",
+    name: "Tạo kế hoạch kiểm thử các chức năng",
     preceedingTasks: [10],
     startTime: null,
     endTime: null,
@@ -198,7 +181,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["QA", "Tester"],
     requireAssign: {
       manual_test: 2,
       unit_test: 1
@@ -214,7 +196,8 @@ const tasks = [
   },
   {
     id: 7,
-    name: "B2",
+    code: "B2",
+    name: "Kiểm thử luồng phân bổ nguồn lực",
     preceedingTasks: [2, 3, 4, 9, 16, 17, 18],
     startTime: null,
     endTime: null,
@@ -228,7 +211,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Dev", "Tester", "Leader", "QA"],
     requireAssign: {
       manual_test: 1,
       unit_test: 1,
@@ -245,7 +227,8 @@ const tasks = [
   },
   {
     id: 8,
-    name: "B3",
+    code: "B3",
+    name: "Sửa lỗi các module yêu cầu",
     preceedingTasks: [7],
     startTime: null,
     endTime: null,
@@ -259,7 +242,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       backend: 2,
       frontend: 1,
@@ -276,7 +258,8 @@ const tasks = [
   },
   {
     id: 9,
-    name: "B4",
+    code: "B4",
+    name: "Viết kịch bản thử nghiệm cho luồng phân bổ nguồn lực",
     preceedingTasks: [13],
     startTime: null,
     endTime: null,
@@ -290,12 +273,9 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Dev", "Tester"],
     requireAssign: {
       degree: 2,
       unit_test: 2,
-      // manual_test: 1,
-      // automation_test: 1
     },
     estimateTime: 2,
     kpiInTask: [
@@ -308,7 +288,8 @@ const tasks = [
   },
   {
     id: 10,
-    name: "C1",
+    code: "C1",
+    name: "Lập kế hoạch cho dự án",
     preceedingTasks: [],
     startTime: null,
     endTime: null,
@@ -337,7 +318,8 @@ const tasks = [
   },
   {
     id: 11,
-    name: "D1",
+    code: "D1",
+    name: "Thu thập phản hồi của khách hàng",
     preceedingTasks: [8],
     startTime: null,
     endTime: null,
@@ -351,7 +333,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Tester", "QA"],
     requireAssign: {
       english: 5
     },
@@ -366,7 +347,8 @@ const tasks = [
   },
   {
     id: 12,
-    name: "D2",
+    code: "D2",
+    name: "Điều chỉnh chức năng phân bổ nguồn lực",
     preceedingTasks: [11],
     startTime: null,
     endTime: null,
@@ -380,7 +362,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       year_of_exp: 2,
       ci_cd: 2,
@@ -397,7 +378,8 @@ const tasks = [
   },
   {
     id: 13,
-    name: "E1",
+    name: "Đề xuất ý cho bài toán phân bổ nguồn lực",
+    code: "E1",
     preceedingTasks: [1],
     startTime: null,
     endTime: null,
@@ -426,7 +408,8 @@ const tasks = [
   },
   {
     id: 14,
-    name: "F1",
+    code: "F1",
+    name: "Lập tài liệu thuyết trình với các bên liên quan",
     preceedingTasks: [],
     startTime: null,
     endTime: null,
@@ -455,7 +438,8 @@ const tasks = [
   },
   {
     id: 15,
-    name: "F2",
+    code: "F2",
+    name: "Viết tài liệu công nghệ sử dụng",
     preceedingTasks: [5],
     startTime: null,
     endTime: null,
@@ -487,7 +471,8 @@ const tasks = [
   },
   {
     id: 16,
-    name: "A24",
+    code: "A24",
+    name: "Dựng các trang thêm, sửa, xóa dự án",
     preceedingTasks: [2, 13],
     startTime: null,
     endTime: null,
@@ -501,7 +486,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       year_of_exp: 1,
       backend: 1,
@@ -518,7 +502,8 @@ const tasks = [
   },
   {
     id: 17,
-    name: "A25",
+    code: "A25",
+    name: "Lập trình service mô đun quản lý dự án",
     preceedingTasks: [3, 13],
     startTime: null,
     endTime: null,
@@ -532,7 +517,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       backend: 2,
       frontend: 2
@@ -548,7 +532,8 @@ const tasks = [
   },
   {
     id: 18,
-    name: "A26",
+    code: "A26",
+    name: "Ghép API mô đun quản lý dự án",
     preceedingTasks: [4, 13],
     startTime: null,
     endTime: null,
@@ -562,7 +547,6 @@ const tasks = [
         ]
       },
     ],
-    // requireAssign: ["Dev", "Leader"],
     requireAssign: {
       frontend: 2,
       backend: 1,

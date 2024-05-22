@@ -100,7 +100,7 @@ const assetAll = [
   },
   {
     id: 6,
-    type: "Pantry",
+    type: "PH B1-704",
     name: "Pantry 1",
     qualities: [{
       level: 4,
@@ -108,25 +108,11 @@ const assetAll = [
     costPerHour: 0.5,
     status: 'ready_to_use',
     logs: [],
-    // usageLogs: [
-    //   {
-    //     startDate: new Date('2024-07-01T05:00:00.000Z'),
-    //     endDate: new Date('2024-08-12T05:00:00.000Z')
-    //   },
-    //   {
-    //     startDate: new Date('2024-08-12T05:00:00.000Z'),
-    //     endDate: new Date('2024-08-20T05:00:00.000Z')
-    //   },
-    //   {
-    //     startDate: new Date('2024-08-20T05:00:00.000Z'),
-    //     endDate: new Date('2024-09-20T05:00:00.000Z')
-    //   }
-    // ]
   },
   {
     id: 7,
     type: "Table",
-    name: "Table 1",
+    name: "Bàn 1",
     qualities: [{
       level: 2,
     }],
@@ -137,7 +123,7 @@ const assetAll = [
   {
     id: 8,
     type: "Table",
-    name: "Table 2",
+    name: "Bàn 2",
     qualities: [{
       level: 1,
     }],
@@ -148,7 +134,7 @@ const assetAll = [
   {
     id: 9,
     type: "Table",
-    name: "Table 3",
+    name: "Bàn 3",
     qualities: [{
       level: 3,
     }],

@@ -1,7 +1,8 @@
 const employees = [
   {
     id: 1, 
-    name: "Leader A",
+    name: "Nguyễn Văn Minh",
+    employeeNumber: "MS202401",
     position: "Leader",
     tags: [],
     level: 5,
@@ -22,7 +23,8 @@ const employees = [
   },
   {
     id: 2, 
-    name: "Dev A Middle",
+    name: "Nguyễn Văn Biển",
+    employeeNumber: "MS202402",
     position: "Dev",
     tags: [],
     level: 3,
@@ -31,7 +33,6 @@ const employees = [
       degree: 3,
       year_of_exp: 4,
       english: 3,
-      // level: 4,
       backend: 4,
       ci_cd: 3,
       frontend: 3,
@@ -43,7 +44,8 @@ const employees = [
   },
   {
     id: 3, 
-    name: "Dev B Junior",
+    name: "Nguyễn Viết Đang",
+    employeeNumber: "MS202403",
     position: "Dev",
     tags: [],
     level: 2,
@@ -52,7 +54,6 @@ const employees = [
       degree: 2,
       year_of_exp: 2,
       english: 3,
-      // level: 3,
       backend: 3,
       ci_cd: 2,
       frontend: 2,
@@ -64,7 +65,8 @@ const employees = [
   },
   {
     id: 7, 
-    name: "Dev B1 Junior",
+    name: "Nguyễn Phúc Nhật Nam",
+    employeeNumber: "MS202404",
     position: "Dev",
     tags: [],
     level: 2,
@@ -84,7 +86,8 @@ const employees = [
   },
   {
     id: 4, 
-    name: "Dev C Fresher",
+    name: "Nguyễn Minh Thành",
+    employeeNumber: "MS202407",
     position: "Dev",
     tags: [],
     level: 1,
@@ -103,7 +106,8 @@ const employees = [
   },
   {
     id: 8, 
-    name: "Dev C2 Fresher",
+    name: "Đặng Quốc Tú",
+    employeeNumber: "MS202408",
     position: "Dev",
     tags: [],
     level: 1,
@@ -121,7 +125,8 @@ const employees = [
   },
   {
     id: 5,
-    name: "Tester A",
+    name: "Nguyễn Thị Oanh",
+    employeeNumber: "MS202405",
     position: "Tester",
     tags: [],
     level: 2,
@@ -137,7 +142,8 @@ const employees = [
   },
   {
     id: 6,
-    name: 'BrSE A',
+    name: 'Vũ Thị Quỳnh',
+    employeeNumber: 'MS202406',
     position: "QA",
     tags: [],
     level: 4,
@@ -151,10 +157,6 @@ const employees = [
       unit_test: 3,
     },
   }
-]
-
-const lastKPIs = [
-  
 ]
 
 module.exports = {
