@@ -1,5 +1,5 @@
 const { KPI_TYPES, KPI_NOT_WORK, DAY_WORK_HOURS, KPI_OF_ASSET_IN_TASK } = require('../consts/kpi.const')
-const { topologicalSort, duplicateSchedule } = require("../helper/index");
+const { topologicalSort, duplicateSchedule, getLastestEndTime } = require("../helper/index");
 
 function findEmployeesWithQualities(employees, requiredQualities) {
   const employeesWithRequiredQualities = employees.filter(employee => {
@@ -1105,34 +1105,136 @@ function isHaveSameSolution(bestFitnessSolutions, currentBestSolution, ratio = 0
 }
 
 
-function reScheduleTasks(assignment, assets, allTasksOutOfProject) {
+function reScheduleTasks(assignment, assets, allTasksOutOfProject, projectEndTime) {
   // Làm việc với 1 assignmentTemp
   const assignmentTemp = []
   for (let i = 0; i < assignment.length; i++) {
     const { task, assignee, assets } = assignment[i]
-    const { startTime, endTime, estimateTime, preceedingTasks } = task
+    const { startTime, endTime, estimateTime, preceedingTasks, id } = task
     assignmentTemp.push({
       task: {
-        startTime,
-        endTime,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
         preceedingTasks,
         estimateTime,
+        id
       },
       assets,
       assignee
     })
   }
-  assignmentTemp[0].task.startTime = new Date('2024-01-01')
-  console.log("vaod=f đay: ", assignmentTemp[0].task.startTime)
-  console.log("vao day 2: ", assignment[0].task.startTime)
 
-  let currentTime = assignment[0].task.startTime
+  assignmentTemp.sort((itemA, itemB) => new Date(itemA.task.endTime) - new Date(itemB.task.endTime))
+  assignmentTemp[0].task.startTime.setDate(assignmentTemp[0].task.startTime.getDate() + 1)
+  console.log("startTime: ", assignment[0].task.startTime)
+  console.log("startTimeTmp: ", assignmentTemp[0].task.startTime)
+  assignmentTemp.forEach(({ task }) => {
+    task.startTime = new Date(task.startTime)
+    task.endTime = new Date(task.endTime)
+  })
+  // console.log("assignment: ", assignment)
+  const endTimeSavesTmp = {}
+  const assetAssignmentsTmp = {};
+
+  assignmentTemp.forEach(({ task, assignee }) => {
+    let startTime = task.startTime
+    const numDay = Math.floor(task.estimateTime);
+    const remainHour = (task.estimateTime - numDay) * DAY_WORK_HOURS;
+
+    const preceedingTasks = task.preceedingTasks.map(id => assignmentTemp.find((item) => item.task.id === id).task)
+    const timeAvailableForAsset = getAvailableTimeForAssetOfTask(task, assets).availableTime
+    task.startTime = new Date(Math.max(startTime, timeAvailableForAsset));
+    if (preceedingTasks?.length > 0) {
+      const maxEndTimeOfPreceedingTasks = preceedingTasks.reduce((maxEndTime, t) => Math.max(maxEndTime, t.endTime), 0);
+      task.startTime = new Date(Math.max(startTime, maxEndTimeOfPreceedingTasks));
+    }
+    if (assignee.id in endTimeSavesTmp && endTimeSavesTmp[assignee.id].getTime() > task.startTime.getTime()) {
+      // Nếu có xung đột, cập nhật thời gian bắt đầu của task
+      task.startTime = endTimeSavesTmp[assignee.id]
+    }
+    // console.log("task.startTime: ", task.startTime)
+    // Kiểm tra xung đột với tài nguyên
+    if (task.assets?.length) {
+      let assetConflict = false;
+      task.assets.forEach(asset => {
+        if (asset.id in assetAssignmentsTmp && assetAssignmentsTmp[asset.id].getTime() > task.startTime.getTime()) {
+          assetConflict = true;
+          // Nếu có xung đột với tài nguyên, cập nhật thời gian bắt đầu của task
+          task.startTime = assetAssignmentsTmp[asset.id];
+          // console.log("vao day: ", task.startTime)
+        }
+      });
+
+      // ReCalculate Time
+      task.startTime = reCalculateTimeWorking(task.startTime)
+      // Nếu có xung đột với tài nguyên, xem xét lại thời gian kết thúc của task
+      if (assetConflict) {
+        task.endTime = new Date(task.startTime.getTime() + numDay * 3600 * 1000 * 24 + remainHour * 3600 * 1000);
+      }
+    }
+
+    // check thêm cả điều kiện về thời gian của thằng nhân viên
+    while (true) {
+      const isAvailable = !allTasksOutOfProject.some(otherTask => {
+        return otherTask.assignee.id === assignee.id &&
+          !(task.endTime <= otherTask.startTime || task.startTime >= otherTask.endTime);
+      })
+
+      if (isAvailable) {
+        break;
+      } else {
+        task.startTime.setHours(task.startTime.getHours() + 1);
+        task.endTime.setHours(task.endTime.getHours() + 1);
+      }
+    }
+
+    task.startTime = reCalculateTimeWorking(task.startTime)
+    // ReCalculate Time
+    task.endTime = new Date(task.startTime.getTime() + numDay * 3600 * 1000 * 24 + remainHour * 3600 * 1000);
+    task.endTime = reCalculateTimeWorking(task.endTime)
+    // console.log("task.endTime: ", task.endTime)
+
+    endTimeSavesTmp[assignee.id] = task.endTime;
+
+    // Cập nhật lại thông tin về tài nguyên được gán
+    if (task.assets) {
+      task.assets.forEach(asset => {
+        assetAssignmentsTmp[asset.id] = task.endTime;
+      });
+    }
+  })
+  const endTimeTmp = getLastestEndTime(assignmentTemp)
+ 
+  if (endTimeTmp > projectEndTime) {
+    console.log("Điều chỉnh lịch nhưng không được vì vượt quá thời gian cho phép, những task bị trùng sẽ cần được ủy quyền")
+  } else {
+    assignment.forEach(({ task }) => {
+      taskInTemp = assignmentTemp.find((item) => item.task.id === task.id).task
+      task.startTime = new Date(taskInTemp.startTime)
+      task.endTime = new Date(taskInTemp.endTime)
+    })
+  }
+
+}
+
+function reScheduleTasks(assignment, assets, allTasksOutOfProject, projectEndTime) {
+  // Làm việc với 1 assignmentTemp
+  for (let i = 0; i < assignment.length; i++) {
+    const { task } = assignment[i]
+    const { startTime, endTime } = task
+    task.startTimeTmp = new Date(startTime)
+    task.endTimeTmp = new Date(endTime)
+  }
   assignment.sort((itemA, itemB) => new Date(itemA.task.endTime) - new Date(itemB.task.endTime))
   assignment.forEach(({ task }) => {
     task.startTime = new Date(task.startTime)
     task.endTime = new Date(task.endTime)
   })
-  // console.log("assignment: ", assignment)
+  // Test
+  // assignment[0].task.startTime.setDate(assignment[0].task.startTime.getDate())
+
+  // console.log("assignment: ", assignment[0].task.startTime)
+  // console.log("assignment: ", assignment[0].task.startTimeTmp)
   const endTimeSaves = {}
   const assetAssignments = {};
 
@@ -1202,10 +1304,19 @@ function reScheduleTasks(assignment, assets, allTasksOutOfProject) {
         assetAssignments[asset.id] = task.endTime;
       });
     }
-
-    currentTime = task.endTime;
-    // TODO: Gán assets
   })
+
+  let endTimeTmp = getLastestEndTime(assignment)
+  // console.log("endTimeTmp: ", endTimeTmp)
+  
+ 
+  if (endTimeTmp > projectEndTime) {
+    console.log("Điều chỉnh lịch nhưng không được vì vượt quá thời gian cho phép, những task bị trùng sẽ cần được ủy quyền")
+    assignment.forEach(({ task }) => {
+      task.startTime = new Date(task.startTimeTmp)
+      task.endTime = new Date(task.endTimeTmp)
+    })
+  } 
 }
 
 function getDistanceOfKPIEmployeesTarget(kpiOfEmployeesSolution, kpiOfEmployeesTarget) {

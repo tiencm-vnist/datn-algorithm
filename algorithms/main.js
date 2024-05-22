@@ -29,9 +29,9 @@ const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, D
 
   // pre-processing KPI
   const lastKPIs = getLastKPIAndAvailableEmpsInTasks(job.tasks, allTasksInPast, employees)
-  console.log("job.task: ", job.tasks.forEach(task => {
-    console.log(task.id, task.availableAssignee.map((emp) => emp.id).join(", "))
-  }))
+  // console.log("job.task: ", job.tasks.forEach(task => {
+  //   console.log(task.id, task.availableAssignee.map((emp) => emp.id).join(", "))
+  // }))
 
 
   // Step 1.2
@@ -58,7 +58,7 @@ const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, D
   let testResult = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
   for (let i = 1; i < 20; i++) {
     const result = DLHS(DLHS_Arguments, job.tasks, employees, lastKPIs, kpiTarget, kpiOfEmployeesTarget, assetHasKPIWeight)
-    console.log("result: ", result.kpiAssignment, result.distanceWithKPIEmployeesTarget)
+    // console.log("result: ", result.kpiAssignment, result.distanceWithKPIEmployeesTarget)
     const checkIsFitnessSolutionResult = checkIsFitnessSolution(result, kpiTarget, kpiOfEmployeesTarget)
     if (checkIsFitnessSolutionResult) {
       testResult = result
@@ -71,8 +71,8 @@ const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, D
 
   // Step 3
   if (testResult?.falseDuplicate) {
-    console.log("vào đây")
-    reScheduleTasks(testResult.assignment, assets, allTasksOutOfProject)
+    console.log("vào đây!, chỉnh sửa lịch")
+    reScheduleTasks(testResult.assignment, assets, allTasksOutOfProject, job.endTime)
     console.log("day works: ", getTimeForProject(testResult.assignment))
   }
 
@@ -139,9 +139,9 @@ const proposalForProjectWithHS_Base = (job, allTasksInPast, allTasksOutOfProject
   }
 
   // Step 3
-  if (testResult?.falseDuplicate) {
+  if (testResult?.falseDuplicate || true) {
     console.log("vào đây")
-    reScheduleTasks(testResult.assignment, assets, allTasksOutOfProject)
+    reScheduleTasks(testResult.assignment, assets, allTasksOutOfProject, new Date('2024-10-08T05:00:00.000Z'))
     console.log("day works: ", getTimeForProject(testResult.assignment))
   }
 
