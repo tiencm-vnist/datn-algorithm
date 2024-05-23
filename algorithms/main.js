@@ -7,7 +7,7 @@ const { scheduleTasksWithAsset, getAvailableEmployeesForTasks, checkIsFitnessSol
 const { kMeansWithEmployees, splitKPIToEmployeesByKMeans, findBestMiniKPIOfTasks, reSplitKPIOfEmployees } = require('../helper/k-mean.helper');
 const { allTasksOutOfProject } = require('../data/taskOutofProject');
 const { allTasksInPast } = require('../data/taskInPast');
-const { tasks } = require('../data/task');
+const { employees } = require('../data/employee');
 
 
 
@@ -30,9 +30,9 @@ const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, D
 
   // pre-processing KPI
   const lastKPIs = getLastKPIAndAvailableEmpsInTasks(job.tasks, allTasksInPast, employees)
-  console.log("job.task: ", job.tasks.forEach(task => {
-    console.log(task.id, task.availableAssignee.map((emp) => emp.id).join(", "))
-  }))
+  // console.log("job.task: ", job.tasks.forEach(task => {
+  //   console.log(task.id, task.availableAssignee.map((emp) => emp.id).join(", "))
+  // }))
 
 
   // Step 1.2
@@ -74,9 +74,7 @@ const proposalForProjectWithDLHS = (job, allTasksInPast, allTasksOutOfProject, D
   if (testResult?.falseDuplicate) {
     console.log("vào đây!, chỉnh sửa lịch")
     reScheduleTasks(testResult.assignment, assets, allTasksOutOfProject, job.endTime)
-    console.log("day works: ", getTimeForProject(testResult.assignment))
   }
-  console.log("cos alpha: ", getDistanceOfKPIEmployeesTarget_2(testResult.kpiOfEmployees, kpiOfEmployeesTarget))
 
   return testResult
 }
@@ -150,20 +148,13 @@ const proposalForProjectWithHS_Base = (job, allTasksInPast, allTasksOutOfProject
   return testResult
 }
 
-async function test() {
+async function testDLHS() {
   const { project, assetHasKPIWeight, DLHS_Arguments, HS_Arguments } = require('./input')
-
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Task KPIs');
-  const employeesheet = workbook.addWorksheet('Task KPIs of Employee');
-  let count = 0
-  worksheet.addRow(['ID_KPI_Target', 'Target A', 'Target B', 'Target C'])
-  worksheet.addRow([project.kpiTarget['A'].value, project.kpiTarget['B'].value, project.kpiTarget['C'].value])
-  // Add headers
-  worksheet.addRow(['ID', 'Task ID', 'Preceeding IDs', 'Available Assignee', 'AssigneeId', 'MachineId', 'Start Time', 'End Time', ' ', 'Total Cost', 'Distance Of KPI', 'Total KPI A', 'Total KPI B', 'TotalKPI C', '', 'AssigneeId', 'KPI A when splits', 'KPI A of Assignee with All Tasks', 'KPI B when splits', 'Total KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks']);
+  
   const start = performance.now()
   let testResult = proposalForProjectWithDLHS(project, allTasksInPast, allTasksOutOfProject, DLHS_Arguments, assetHasKPIWeight)
   const end = performance.now()
+  const performanceTime = (end - start) / 1000
 
   console.log("Cost: ", testResult.totalCost)
   console.log("KPIs: ", testResult.kpiAssignment)
@@ -174,6 +165,77 @@ async function test() {
   console.log("Day works: ", getTimeForProject(testResult.assignment))
   console.log("Duplicate: ", testResult.falseDuplicate)
 
+
+  // Đưa dữ liệu đầu ra
+  const workbook = new ExcelJS.Workbook();
+  const argumentsSheet = workbook.addWorksheet('Tham so thuat toan');
+  const projectGeneralSheet = workbook.addWorksheet('Thong_Tin_Du_An')
+  const taskSheet = workbook.addWorksheet('Ket_qua_phan_bo');
+  const employeesheet = workbook.addWorksheet('Lich_Nhan_Cong');
+  const assetSheet = workbook.addWorksheet('Lich_May_Moc');
+
+  // Thông tin về tham số
+  argumentsSheet.addRow(['Tham số thuật toán DLHS'])
+  argumentsSheet.addRow(['Key', 'Value']);
+  // Thêm từng key và value vào sheet
+  Object.keys(DLHS_Arguments).forEach(key => {
+    argumentsSheet.addRow([key, DLHS_Arguments[key]]);
+  });
+
+  // Thông tin chung về dự án
+  projectGeneralSheet.addRow(['ID_KPI_Target', 'Target A', 'Target B', 'Target C'])
+  projectGeneralSheet.addRow([project.kpiTarget['A'].value, project.kpiTarget['B'].value, project.kpiTarget['C'].value])
+  projectGeneralSheet.addRow(['Start Time', 'End Time'])
+  projectGeneralSheet.addRow([project.startTime.toLocaleString(), project.endTime.toLocaleString()])
+
+  // Thêm dữ liệu cho sheet kết quả phân bổ task
+  taskSheet.addRow(['Thông tin phân bổ'])
+  taskSheet.addRow(['Task ID (Task Name)', 'Start Time', 'End Time', 'AssigneeId (Assignee Name)', 'AssetId (Asset Name)']);
+  for (let i = 0; i < testResult.assignment.length; i++) {
+    const { task, assignee, assets } = testResult.assignment[i]
+    let assetToPush = ''
+    assets.forEach((asset) => {
+      assetToPush += `${asset.id} (${asset.name}), `
+    })
+    assetToPush = assetToPush.substring(0, assetToPush.length - 2)
+    assetToPush = `[ ${assetToPush}]`
+
+    taskSheet.addRow([`${task.id} (${task.name})`, task.startTime.toLocaleString(), task.endTime.toLocaleString(), `${assignee.id} (${assignee.name})`, assetToPush]);
+  }
+
+  // Kết quả phân bổ
+  taskSheet.addRow(['Các kết quả sau khi phân bổ'])
+  let headerSheet = []
+  let resultRow = []
+  const kpiTarget = project.kpiTarget
+  for (let key in kpiTarget) {
+    headerSheet.push('Target KPI Type ' + key)
+    headerSheet.push('Result KPI Type ' + key)
+    resultRow.push(kpiTarget[key].value)
+    resultRow.push(testResult.kpiAssignment[key])
+  }
+  
+  taskSheet.addRow([...headerSheet, 'Start Time', 'End Time', 'Total Duration Works', 'Total Cost', 'Distance', 'Performence (s)'])
+  taskSheet.addRow([...resultRow, getTimeForProject(testResult.assignment).startTime.toLocaleString(), getTimeForProject(testResult.assignment).endTime.toLocaleString(), getTimeForProject(testResult.assignment).totalTime, testResult.totalCost, testResult.distanceWithKPIEmployeesTarget, performanceTime])
+  
+  taskSheet.addRow(['KPI Phân bổ'])
+  let header = ['Employee ID Name', 'Employee ID']
+  for (let key in kpiTarget) {
+    header.push('KPI Type ' + key)
+  }
+  taskSheet.addRow([...header])
+  for (let key in testResult.kpiOfEmployees) {
+    const employeeName = project.employees.find((item) => Number(item.id) == Number(key)).name
+    const kpiOfEmployee = testResult.kpiOfEmployees[key]
+    let row = [employeeName, key]
+    for (let kpiType in kpiOfEmployee) {
+      row.push(kpiOfEmployee[kpiType])
+    }
+    taskSheet.addRow([...row])
+  }
+
+
+  // Thêm dữ liệu cho sheet lịch nhân công thực hiện công việc
   const employeeTimes = {
     1: [],
     2: [],
@@ -211,24 +273,43 @@ async function test() {
   for (let key in employeeTimes) {
     const employeeWorks = employeeTimes[key].sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
 
-    worksheet.addRow(['Emp ID', 'Task ID', 'Task name', 'StartTime', 'End Time', 'Task ở đâu', 'Task liên quan', 'point', 'estimate Time'])
+    employeesheet.addRow(['Emp ID', 'Task ID', 'Task name', 'StartTime', 'End Time', 'Task ở đâu', 'Task liên quan', 'point', 'estimate Time'])
     for (let i = 0; i < employeeWorks.length; i++) {
-      worksheet.addRow([key, employeeWorks[i]?.id, employeeWorks[i]?.name, employeeWorks[i].startTime, employeeWorks[i].endTime, employeeWorks[i]?.project ? employeeWorks[i]?.project : employeeWorks[i]?.status ? "Project QK" : "Project outof", employeeWorks[i]?.taskLq, employeeWorks[i]?.evaluatePoint === -1 ? "fail" : employeeWorks[i]?.evaluatePoint, employeeWorks[i]?.estimateTime ? employeeWorks[i]?.estimateTime : employeeWorks[i]?.taskLq, JSON.stringify(employeeWorks[i]?.requireAssign), JSON.stringify(employeeWorks[i]?.requireAsset)])
+      employeesheet.addRow([key, employeeWorks[i]?.id, employeeWorks[i]?.name, employeeWorks[i].startTime, employeeWorks[i].endTime, employeeWorks[i]?.project ? employeeWorks[i]?.project : employeeWorks[i]?.status ? "Project QK" : "Project outof", employeeWorks[i]?.taskLq, employeeWorks[i]?.evaluatePoint === -1 ? "fail" : employeeWorks[i]?.evaluatePoint, employeeWorks[i]?.estimateTime ? employeeWorks[i]?.estimateTime : employeeWorks[i]?.taskLq, JSON.stringify(employeeWorks[i]?.requireAssign), JSON.stringify(employeeWorks[i]?.requireAsset)])
     }
   }
 
-  // for (let i = 0; i < testResult.assignment.length; i++) {
-  //   const { task, assignee, assets } = testResult.assignment[i]
-  //   worksheet.addRow([i + 1, task.id, task.preceedingTasks.join(", "), task.availableAssignee.map((item) => item.id).join(", "), assignee.id, assets[0].id, task.startTime, task.endTime, ' ', testResult.totalCost, testResult.distanceWithKPIEmployeesTarget, kpiAssignment['A'], kpiAssignment['B'], kpiAssignment['C'],  ' ', assignee.id, kpiOfEmployeesTarget[assignee.id]['A'], kpiOfEmployee[assignee.id]['A'], kpiOfEmployeesTarget[assignee.id]['B'], kpiOfEmployee[assignee.id]['B'], kpiOfEmployeesTarget[assignee.id]['C'], kpiOfEmployee[assignee.id]['C']]);
-  // }    
 
-  // employeesheet.addRow(['Target A', 'Target B', 'Target C'])
-  // employeesheet.addRow([project.kpiTarget['A'].value, project.kpiTarget['B'].value, project.kpiTarget['C'].value])
-  // employeesheet.addRow(['ID', 'Employee ID', 'KPI A when splits', 'Total KPI A of Assignee with All Tasks', 'KPI B when splits', 'Toal KPI B of Assignee with All Tasks', 'KPI C when splits', 'Total KPI C of Assignee with All Tasks', '', 'Total KPI A', 'Total KPI B', 'TotalKPI C', 'Distance']);
-  // for (let i = 0; i < employees.length; i++) {
-  //   employeesheet.addRow([i + 1, employees[i].id, kpiOfEmployeesTarget[employees[i].id]['A'], kpiOfEmployee[employees[i].id]['A'], kpiOfEmployeesTarget[employees[i].id]['B'], kpiOfEmployee[employees[i].id]['B'], kpiOfEmployeesTarget[employees[i].id]['C'], kpiOfEmployee[employees[i].id]['C'], '', kpiAssignment['A'], kpiAssignment['B'], kpiAssignment['C'], testResult.distanceWithKPIEmployeesTarget]);
-  // }
-    
+  // Thêm dữ liệu cho sheet thời gian của tài sản
+  const assetsAll = project.assets
+  const allAssets = [...assetsAll.inUse, ...assetsAll.readyToUse]
+  let allAssetTimes = {}
+  allAssets.forEach((asset) => {
+    allAssetTimes[asset.id] = asset.usageLogs || []
+  })
+  testResult.assignment.forEach(({ task, assets }) => {
+    const {startTime, endTime} = task
+    assets.forEach((asset) => {
+      allAssetTimes[asset.id].push({
+        startDate: new Date(startTime),
+        endDate: new Date(endTime),
+        task: task.name
+      })
+    })
+  })
+
+  assetSheet.addRow(['AssetID', 'Start Date', 'End Date', 'Thực hiện công việc trong dự án'])
+
+  Object.keys(allAssetTimes).forEach(assetId => {
+    allAssetTimes[assetId].forEach(time => {
+      assetSheet.addRow([
+        assetId,
+        time.startDate.toLocaleString(),
+        time.endDate.toLocaleString(),
+        time?.task ? item.task : "Công việc khác ngoài dự án"
+      ]);
+    });
+  });
   
   // Save workbook to a file
   const filePath = '../output/task_kpis_output.xlsx';
@@ -236,4 +317,5 @@ async function test() {
   console.log(`Excel file created at: ${filePath}`);
 }
 
-test()
+testDLHS()
+

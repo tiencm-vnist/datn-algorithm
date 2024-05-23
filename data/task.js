@@ -36,7 +36,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 8/35,
+        weight: 0.228,
       }
     ]
   },
@@ -68,7 +68,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 3/35,
+        weight: 0.086,
       }
     ]
   },
@@ -98,7 +98,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 3/35,
+        weight: 0.086,
       }
     ]
   },
@@ -129,7 +129,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 4/35,
+        weight: 0.114,
       }
     ]
   },
@@ -160,7 +160,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 6/35,
+        weight: 0.171,
       }
     ]
   },
@@ -190,7 +190,7 @@ const tasks = [
       {
         id: 2,
         type: "B",
-        weight: 5/35,
+        weight: 0.143,
       }
     ]
   },
@@ -221,7 +221,7 @@ const tasks = [
       {
         id: 2,
         type: "B",
-        weight: 5/35,
+        weight: 0.143,
       }
     ]
   },
@@ -252,7 +252,7 @@ const tasks = [
       {
         id: 2,
         type: "B",
-        weight: 10/35,
+        weight: 0.286,
       }
     ]
   },
@@ -282,7 +282,7 @@ const tasks = [
       {
         id: 2,
         type: "B",
-        weight: 5/35,
+        weight: 0.143,
       }
     ]
   },
@@ -312,7 +312,7 @@ const tasks = [
       {
         id: 2,
         type: "B",
-        weight: 10/35,
+        weight: 0.285,
       }
     ]
   },
@@ -341,7 +341,7 @@ const tasks = [
       {
         id: 3,
         type: "C",
-        weight: 10/30,
+        weight: 0.333,
       }
     ]
   },
@@ -372,7 +372,7 @@ const tasks = [
       {
         id: 3,
         type: "C",
-        weight: 5/30,
+        weight: 0.167,
       }
     ]
   },
@@ -402,7 +402,7 @@ const tasks = [
       {
         id: 3,
         type: "C",
-        weight: 5/30,
+        weight: 0.166,
       }
     ]
   },
@@ -432,7 +432,7 @@ const tasks = [
       {
         id: 3,
         type: "C",
-        weight: 5/30,
+        weight: 0.167,
       }
     ]
   },
@@ -465,7 +465,7 @@ const tasks = [
       {
         id: 3,
         type: "C",
-        weight: 5/30,
+        weight: 0.167,
       }
     ]
   },
@@ -496,7 +496,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 5/35,
+        weight: 0.143,
       }
     ]
   },
@@ -526,7 +526,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 3/35,
+        weight: 0.086,
       }
     ]
   },
@@ -557,7 +557,7 @@ const tasks = [
       {
         id: 1,
         type: "A",
-        weight: 3 / 35,
+        weight: 0.086,
       }
     ]
   },

@@ -2,7 +2,8 @@ const assetAll = [
   {
     id: 1,
     type: "Laptop",
-    name: "Laptop 1",
+    code: "SW.001",
+    name: "Laptop Macbook Air M1",
     qualities: [
       {
         level: 1,
@@ -15,7 +16,8 @@ const assetAll = [
   {
     id: 2,
     type: "Laptop",
-    name: "Laptop 2",
+    code: "SW.002",
+    name: "Laptop Macbook Pro M1",
     qualities: [{
       level: 2,
     }],
@@ -40,7 +42,8 @@ const assetAll = [
   {
     id: 3,
     type: "Laptop",
-    name: "Laptop 3",
+    code: "SW.003",
+    name: "Laptop Macbook Pro M1",
     qualities: [{
       level: 3,
     }],
@@ -65,7 +68,8 @@ const assetAll = [
   {
     id: 4,
     type: "Server",
-    name: "Server 1",
+    name: "Server 12GB SSD",
+    code: "SW.004",
     qualities: [{
       level: 3,
     }],
@@ -90,7 +94,8 @@ const assetAll = [
   {
     id: 5,
     type: "Server",
-    name: "Server 2",
+    name: "Server 16GB SSD",
+    code: "SW.005",
     qualities: [{
       level: 4,
     }],
@@ -100,8 +105,9 @@ const assetAll = [
   },
   {
     id: 6,
-    type: "PH B1-704",
-    name: "Pantry 1",
+    type: "Pantry",
+    code: "SW.007",
+    name: "Phòng họp B1-704",
     qualities: [{
       level: 4,
     }],
@@ -112,6 +118,7 @@ const assetAll = [
   {
     id: 7,
     type: "Table",
+    code: "SW.008",
     name: "Bàn 1",
     qualities: [{
       level: 2,
@@ -122,6 +129,7 @@ const assetAll = [
   },
   {
     id: 8,
+    code: "SW.009",
     type: "Table",
     name: "Bàn 2",
     qualities: [{
@@ -134,6 +142,7 @@ const assetAll = [
   {
     id: 9,
     type: "Table",
+    code: "SW.010",
     name: "Bàn 3",
     qualities: [{
       level: 3,

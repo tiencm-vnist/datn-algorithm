@@ -95,29 +95,53 @@ function findTasksWithMatchingTagsAndRequire(allTasks, task) {
 
 function getLastKPIAndAvailableEmpsInTasks(tasks, allTasksInPast, employees) {
   const lastKPIsOfEmps = []
-  employees.forEach((employee) => {
-    const id = employee.id
-    let kpiInTask = []
-    tasks.forEach(() => {
+  
+  if (!allTasksInPast?.length || !allTasksInPast) {
+    employees.forEach((employee) => {
+      const id = employee.id
+      let kpiInTask = []
+      tasks.forEach(() => {
+        kpiInTask.push(1)
+      })
+      kpiInTask.push(1)
+      lastKPIsOfEmps.push({
+        id,
+        kpiInTask: kpiInTask
+      })
+    })
+    tasks.forEach((task) => {
+      const { requireAssign } = task
+      task.availableAssignee = findEmployeesWithQualities(employees, requireAssign)
+    })
+    return lastKPIsOfEmps
+  } else {
+    employees.forEach((employee) => {
+      const id = employee.id
+      let kpiInTask = []
+      tasks.forEach(() => {
+        kpiInTask.push(0)
+      })
       kpiInTask.push(0)
+      lastKPIsOfEmps.push({
+        id,
+        kpiInTask: kpiInTask
+      })
     })
-    kpiInTask.push(0)
-    lastKPIsOfEmps.push({
-      id,
-      kpiInTask: kpiInTask
-    })
-  })
+  }
   lastKPIsOfEmps.sort((a, b) => a.id - b.id)
   // console.log("lastKPI: ", lastKPIsOfEmps)
   tasks.forEach((task) => {
     const { requireAssign } = task
+    // console.log("requireAssign: ", requireAssign)
     let availableAssignee = employees
     
     if (requireAssign === undefined || !Object.keys(requireAssign)?.length) {
       employees.map((employee) => {
         const employeeId = employee.id
         let kpiValue = 0
+        // Nếu không yêu cầu năng lực => lấy năng lực thực hiện task tốt nhất từ trước giờ của nó
         taskOfEmps = allTasksInPast.filter((item) => item.assignee.id === employeeId).sort((a, b) => b.evaluatePoint - a.evaluatePoint)
+        // console.log("taskOfEmp: ", taskOfEmps)
         kpiValue = taskOfEmps[0].evaluatePoint
         kpiInTaskWithEmp = lastKPIsOfEmps.find((item) => item.id === employee.id)
 
@@ -125,6 +149,7 @@ function getLastKPIAndAvailableEmpsInTasks(tasks, allTasksInPast, employees) {
       })
     } else {
       const listTasksMatching = findTasksWithMatchingTagsAndRequire(allTasksInPast, task)
+
       availableAssignee = findEmployeesWithQualities(employees, requireAssign)
       // console.log("Avai 1: ", availableAssignee.map((item) => item.id))
       const vectorLengthAssigneeCurrentTask = getVectorLength(requireAssign)
@@ -195,7 +220,6 @@ function getLastKPIAndAvailableEmpsInTasks(tasks, allTasksInPast, employees) {
 
   tasks.forEach((task) => {
     const { availableAssignee, id } = task
-    // console.log("task: ", id, "emp: ",availableAssignee.map((item) => item.id).join(", "), lastKPIsOfEmps.map((item) => item.kpiInTask[id]))
 
     availableAssignee.map((employee) => {
       const employeeId = employee.id
@@ -203,11 +227,10 @@ function getLastKPIAndAvailableEmpsInTasks(tasks, allTasksInPast, employees) {
       let kpiValue = kpiOfEmployeeInTask.kpiInTask[id]
       if (kpiValue === 0) {
         let kpiOfOthersEmployeeInTask = lastKPIsOfEmps.map((item) => item.kpiInTask[id]).filter((item) => item !== KPI_NOT_WORK && item !== 0).sort((a, b) => a - b)
-        // console.log("task: ", id, "emp: ", employee.id, "kpi: ", kpiOfOthersEmployeeInTask)
         if (kpiOfOthersEmployeeInTask?.length) {
           kpiValue = kpiOfOthersEmployeeInTask[0]
         } else {
-          kpiValue = Math.random(0.7, 1)
+          kpiValue = 0.7 + Math.random() * (1 - 0.7)
         }
         kpiOfEmployeeInTask.kpiInTask[id] = kpiValue
       }
@@ -597,7 +620,7 @@ function scheduleTasksWithAsset(job, assets) {
   for (const task of sortedTasks) {
     // console.log("currentAsset: ", currentAssets.inUse.length, currentAssets.readyToUse.length, "id task: ", task.id)
     const { taskAssets, availableTime } = getAvailableTimeForAssetOfTask(task, currentAssets);
-    console.log(task.id, "available: ", availableTime)
+    // console.log(task.id, "available: ", availableTime)
     // console.log("task: ", task.id)
     // console.log("taskAssets: ", taskAssets)
     // Gán các tài nguyên đã chọn cho task
@@ -734,11 +757,6 @@ function scheduleTasksWithAssetAndEmpTasks(job, assets, allTasksOutOfProject) {
     task.startTime = reCalculateTimeWorking(task.startTime)
     task.endTime = new Date(task.startTime.getTime() + numDay * 3600 * 1000 * 24 + remainHour * 3600 * 1000);
     task.endTime = reCalculateTimeWorking(task.endTime)
-    
-    // console.log("startTime: ", task.startTime)
-    // console.log("endTime: ", task.endTime)
-
-    // Đánh dấu các tài nguyên đã được sử dụng trong khoảng thời gian thực hiện nhiệm vụ
     currentAssets = markAssetsAsUsed(currentAssets, taskAssets, task.startTime, task.endTime);
   }
 

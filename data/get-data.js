@@ -11,6 +11,7 @@ console.log("assets: ", assets)
 
 const fileName = './algorithms/output/kpi_employee.json'
 const fs = require('fs');
+const { getLastKPIAndAvailableEmpsInTasks } = require('../algorithms/hs_helper');
 
 async function addInput() {
   const workbook = new ExcelJS.Workbook();
@@ -38,7 +39,6 @@ async function addInput() {
   const filePath = 'so_sanh_input.xlsx';
   await workbook.xlsx.writeFile(filePath);
 }
-
 addInput()
 
 module.exports = {

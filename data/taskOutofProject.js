@@ -6,7 +6,10 @@ const allTasksOutOfProject = [
     name: "Phân tích nhu cầu học ngoại ngữ của sinh viên",
     startTime: new Date('2024-07-27T08:00:00.000Z'),
     endTime: new Date('2024-08-01T04:00:00.000Z'),
-    requireAssign: {},
+    requireAssign: {
+      english: 3,
+      year_of_exp: 2,
+    },
     requireAsset: [],
     estimateTime: 4.5,
     assignee: {
@@ -33,7 +36,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-09-30T08:00:00.000Z'),
     endTime: new Date('2024-10-03T10:00:00.000Z'),
     estimateTime: 3.25,
-    requireAssign: {},
+    requireAssign: {english:3,year_of_exp:2},
     requireAsset: [],
     assignee: {
       id: 1
@@ -46,7 +49,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-10-04T01:00:00.000Z'),
     endTime: new Date('2024-10-06T10:00:00.000Z'),
     estimateTime: 3,
-    requireAssign: {},
+    requireAssign: {year_of_exp:2, degree:2},
     requireAsset: [],
     assignee: {
       id: 1
@@ -60,7 +63,7 @@ const allTasksOutOfProject = [
     name: "Dựng code base Java core",
     startTime: new Date('2024-07-27T02:00:00.000Z'),
     endTime: new Date('2024-08-01T10:00:00.000Z'),
-    requireAssign: {},
+    requireAssign: {year_of_exp:2,backend:2,frontend:2,docker:1},
     requireAsset: [],
     estimateTime: 5.875,
     assignee: {
@@ -73,7 +76,7 @@ const allTasksOutOfProject = [
     name: "Sửa lỗi chức năng Thêm vào giỏ",
     startTime: new Date('2024-08-02T01:00:00.000Z'),
     endTime: new Date('2024-08-03T08:00:00.000Z'),
-    requireAssign: {},
+    requireAssign: {year_of_exp:2,backend:2,frontend:1},
     requireAsset: [],
     estimateTime: 1.75,
     assignee: {
@@ -86,7 +89,7 @@ const allTasksOutOfProject = [
     name: "Triển khai module quản lý thầu lên server",
     startTime: new Date('2024-08-03T08:00:00.000Z'),
     endTime: new Date('2024-08-08T10:00:00.000Z'),
-    requireAssign: {},
+    requireAssign: {year_of_exp:1,docker:2,ci_cd:2},
     estimateTime: 5.25,
     requireAsset: [],
     assignee: {
@@ -100,7 +103,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-09-24T06:00:00.000Z'),
     endTime: new Date('2024-09-24T10:00:00.000Z'),
     estimateTime: 0.5,
-    requireAssign: {},
+    requireAssign: {degree:2,frontend:2},
     requireAsset: [],
     assignee: {
       id: 2
@@ -115,7 +118,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-07-27T01:00:00.000Z'),
     endTime: new Date('2024-08-01T08:00:00.000Z'),
     estimateTime: 5.75,
-    requireAssign: {},
+    requireAssign: {year_of_exp:1,backend:1,frontend:2},
     requireAsset: [],
     assignee: {
       id: 3
@@ -129,7 +132,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-09-04T06:00:00.000Z'),
     endTime: new Date('2024-09-08T06:00:00.000Z'),
     estimateTime: 4,
-    requireAssign: {},
+    requireAssign: {year_of_exp:1,docker:2,ci_cd:2,backend:1},
     requireAsset: [],
     assignee: {
       id: 3
@@ -142,7 +145,7 @@ const allTasksOutOfProject = [
     estimateTime: 2.5, 
     startTime: new Date('2024-09-08T06:00:00.000Z'),
     endTime: new Date('2024-09-10T10:00:00.000Z'),
-    requireAssign: {},
+    requireAssign: {manual_test:1,unit_test:2,automation_test:1},
     requireAsset: [],
     assignee: {
       id: 3
@@ -154,7 +157,7 @@ const allTasksOutOfProject = [
     name: "Đề xuất ý tưởng cho giao diện mới",
     startTime: new Date('2024-09-23T06:00:00.000Z'),
     endTime: new Date('2024-09-24T10:00:00.000Z'),
-    requireAssign: {},
+    requireAssign: {year_of_exp:2,english:3},
     requireAsset: [],
     assignee: {
       id: 3
@@ -169,7 +172,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-07-28T06:00:00.000Z'),
     endTime: new Date('2024-08-03T10:00:00.000Z'),
     estimateTime: 6.5,
-    requireAssign: {},
+    requireAssign: {degree:1,frontend:2},
     requireAsset: [],
     assignee: {
       id: 4
@@ -182,7 +185,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-08-04T01:00:00.000Z'),
     endTime: new Date('2024-08-08T10:00:00.000Z'),
     estimateTime: 5,
-    requireAssign: {},
+    requireAssign: {degree:2,frontend:1},
     requireAsset: [],
     assignee: {
       id: 4
@@ -195,7 +198,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-08-09T01:00:00.000Z'),
     endTime: new Date('2024-08-11T10:00:00.000Z'),
     estimateTime: 3,
-    requireAssign: {},
+    requireAssign: {backend:2,frontend:1,docker:1},
     requireAsset: [],
     assignee: {
       id: 4
@@ -220,7 +223,7 @@ const allTasksOutOfProject = [
     estimateTime: 8,
     startTime: new Date('2024-09-24T01:00:00.000Z'),
     endTime: new Date('2024-10-02T10:00:00.000Z'),
-    requireAssign: {},
+    requireAssign: {frontend:1,backend:1,manual_test:1},
     requireAsset: [],
     assignee: {
       id: 4
@@ -233,7 +236,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-10-04T01:00:00.000Z'),
     endTime: new Date('2024-10-09T10:00:00.000Z'),
     estimateTime: 6, 
-    requireAssign: {},
+    requireAssign: {degree:2,frontend:2},
     requireAsset: [],
     assignee: {
       id: 4
@@ -243,12 +246,12 @@ const allTasksOutOfProject = [
   // 5
   {
     id: 19,
-    project: "",
+    project:"",
     name: "Viết kịch bản kiểm thử tích hợp",
     startTime: new Date('2024-08-17T01:00:00.000Z'),
     endTime: new Date('2024-08-21T10:00:00.000Z'),
     estimateTime: 5,
-    requireAssign: {},
+    requireAssign: {manual_test:1,unit_test:1,automation_test:1},
     requireAsset: [],
     assignee: {
       id: 5
@@ -311,7 +314,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-08-20T01:00:00.000Z'),
     endTime: new Date('2024-08-24T10:00:00.000Z'),
     estimateTime: 5,
-    requireAssign: {},
+    requireAssign: {degree:2,unit_test:2},
     requireAsset: [],
     assignee: {
       id: 6
@@ -374,7 +377,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-08-09T05:00:00.000Z'),
     endTime: new Date('2024-08-11T05:00:00.000Z'),
     estimateTime: 3,
-    requireAssign: {},
+    requireAssign: {year_of_exp:1,backend:2,frontend:1},
     requireAsset: [],
     assignee: {
       id: 7
@@ -402,7 +405,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-09-23T06:00:00.000Z'),
     endTime: new Date('2024-09-24T10:00:00.000Z'),
     estimateTime: 1.5,
-    requireAssign: {},
+    requireAssign: {year_of_exp:1,docker:2,ci_cd:2},
     requireAsset: [],
     assignee: {
       id: 7
@@ -417,7 +420,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-07-29T04:00:00.000Z'),
     endTime: new Date('2024-08-02T10:00:00.000Z'),
     estimateTime: 4.5,
-    requireAssign: {},
+    requireAssign: {degree:2,frontend:2},
     requireAsset: [],
     assignee: {
       id: 8
@@ -430,7 +433,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-08-09T01:00:00.000Z'),
     endTime: new Date('2024-08-11T10:00:00.000Z'),
     estimateTime: 4,
-    requireAssign: {},
+    requireAssign: {backend:2,frontend:2},
     requireAsset: [],
     assignee: {
       id: 8
@@ -443,7 +446,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-08-24T01:00:00.000Z'),
     endTime: new Date('2024-08-29T10:00:00.000Z'),
     estimateTime: 6,
-    requireAssign: {},
+    requireAssign: {degree:2,frontend:3},
     requireAsset: [],
     assignee: {
       id: 8
@@ -456,7 +459,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-08-30T01:00:00.000Z'),
     endTime: new Date('2024-09-01T10:00:00.000Z'),
     estimateTime: 2,
-    requireAssign: {},
+    requireAssign: {manual_test:1,unit_test:1,automation_test:1},
     requireAsset: [],
     assignee: {
       id: 8
@@ -469,7 +472,7 @@ const allTasksOutOfProject = [
     startTime: new Date('2024-09-17T02:00:00.000Z'),
     endTime: new Date('2024-09-22T08:00:00.000Z'),
     estimateTime: 5.625,
-    requireAssign: {},
+    requireAssign: {degree:2,frontend:2},
     requireAsset: [],
     assignee: {
       id: 8
